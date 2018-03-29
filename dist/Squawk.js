@@ -1,20 +1,20 @@
-import { Component } from 'react';
-var squawk_registry = {};
-var squawk_history = {};
-Component.prototype.setSquawk = function (name) {
+import { Component } from "react";
+var squawkRegistry = {};
+var squawkHistory = {};
+Component.prototype.squawk = function (name) {
     this.__squawk__name = name;
 };
 Component.prototype.register = function (message, callback) {
-    if (!squawk_registry[message]) {
-        squawk_registry[message] = {};
+    if (!squawkRegistry[message]) {
+        squawkRegistry[message] = {};
     }
     if (!this.__squawk__name) {
-        throw 'setSquawk must be run before a component may register for messages';
+        throw new Error("squawk must be run before a component may register for messages");
     }
     var subscriber = this.__squawk__name;
-    squawk_registry[message][subscriber] = callback;
-    if (squawk_history[message]) {
-        callback(squawk_history[message]);
+    squawkRegistry[message][subscriber] = callback;
+    if (squawkHistory[message]) {
+        callback(squawkHistory[message]);
     }
 };
 Component.prototype.unregister = function () {
@@ -22,17 +22,18 @@ Component.prototype.unregister = function () {
         return;
     }
     var subscriber = this.__squawk__name;
-    var messages = Object.getOwnPropertyNames(squawk_registry);
-    messages.forEach(function (message) { return squawk_registry[message][subscriber] = undefined; });
+    var messages = Object.getOwnPropertyNames(squawkRegistry);
+    messages.forEach(function (message) { return squawkRegistry[message][subscriber] = undefined; });
 };
 Component.prototype.send = function (message, value) {
-    squawk_history[message] = value;
-    if (!squawk_registry[message]) {
+    squawkHistory[message] = value;
+    if (!squawkRegistry[message]) {
         return;
     }
-    Object.getOwnPropertyNames(squawk_registry[message]).forEach(function (subscriber) {
-        var callback = squawk_registry[message][subscriber];
-        if (callback)
+    Object.getOwnPropertyNames(squawkRegistry[message]).forEach(function (subscriber) {
+        var callback = squawkRegistry[message][subscriber];
+        if (callback) {
             callback(value);
+        }
     });
 };

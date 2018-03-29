@@ -1,10 +1,10 @@
-declare module 'react' {
+declare module "react" {
     interface Component<P, S> {
+        __squawk_identity: string;
         register<T>(message: string, callback: (value: T) => void): void;
         unregister(): void;
         send(message: string, value: any): void;
-        setSquawk(name: string): void;
-        __squawk__name: string;
+        squawk(name: string): void;
     }
 }
 export {};
