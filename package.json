@@ -1,12 +1,12 @@
 {
-  "name": "squawk",
+  "name": "squawk-react",
   "version": "1.0.0",
   "description": "",
   "main": "index.ts",
   "scripts": {
     "build": "tsc"
   },
-  "author": "",
+  "author": "John Strand",
   "license": "ISC",
   "devDependencies": {
     "@types/react": "^16.1.0",
