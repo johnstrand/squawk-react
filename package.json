@@ -1,8 +1,11 @@
 {
   "name": "squawk-react",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.ts",
+  "description": "Squawk is a simple support library to insert message passing capabilities into React components",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/johnstrand/squawk-react"
+  },
   "scripts": {
     "build": "tsc"
   },
