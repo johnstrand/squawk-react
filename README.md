@@ -7,7 +7,7 @@ import 'squawk-react';
 
 ...
 
-public componentWillMount() {
+public componentDidMount() {
     this.squawk('my_component_name'); // This helps Squawk track the subscriber
     this.register<number>('a_message_type', (num) => {
       this.setState({ myNumber: num });
