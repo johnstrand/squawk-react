@@ -31,7 +31,7 @@ Component.prototype.register = function <T>(message: string, callback: (value: T
     }
 
     if (!this.__squawk__name) {
-        throw new Error("squawk must be run before a component may register for messages");
+        throw new Error("squawk() must be run before a component may register for messages");
     }
 
     const subscriber: string = this.__squawk__name;
