@@ -5,6 +5,7 @@ declare module "react" {
         __squawk_identity: string;
         register<T>(message: string, callback: (value: T) => void): void;
         unregister(): void;
+        unregister(message: string): void;
         send(message: string, value: any): void;
         squawk(name: string): void;
     }
@@ -35,14 +36,23 @@ Component.prototype.register = function <T>(message: string, callback: (value: T
     }
 };
 
-Component.prototype.unregister = function (): void {
+Component.prototype.unregister = function (message?: string): void {
     if (!this.__squawk__name) {
         return;
     }
 
+    if (message && !squawkRegistry[message]) {
+        return;
+    }
+
     const subscriber: string = this.__squawk__name;
-    const messages: string[] = Object.getOwnPropertyNames(squawkRegistry);
-    messages.forEach((message) => squawkRegistry[message][subscriber] = undefined);
+
+    if (message) {
+        squawkRegistry[message][subscriber] = undefined;
+    } else {
+        const messages: string[] = Object.getOwnPropertyNames(squawkRegistry);
+        messages.forEach((message) => squawkRegistry[message][subscriber] = undefined);
+    }
 };
 
 Component.prototype.send = function (message: string, value: any): void {
