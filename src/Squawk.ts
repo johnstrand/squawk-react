@@ -11,8 +11,15 @@ declare module "react" {
     }
 }
 
-const squawkRegistry: { [message: string]: { [subscriber: string]: ((value: any) => void) | undefined } } = {};
-const squawkHistory: { [message: string]: any } = {};
+const squawkRegistry: { 
+    [message: string]: { 
+        [subscriber: string]: ((value: any) => void) | undefined 
+    } 
+} = {};
+
+const squawkHistory: { 
+    [message: string]: any 
+} = {};
 
 Component.prototype.squawk = function (name: string): void {
     this.__squawk__name = name;
