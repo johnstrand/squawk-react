@@ -1,6 +1,8 @@
 # squawk-react
 A simple support library to insert message passing capabilities into React components.
 
+The example folder contains a simple todo-app, demonstrating the capabilities of the component.
+
 Use it as such:
 ```typescript
 import 'squawk-react';
