@@ -1,4 +1,5 @@
 import './css/site.css';
+import "squawk-react";
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { AppContainer } from 'react-hot-loader';

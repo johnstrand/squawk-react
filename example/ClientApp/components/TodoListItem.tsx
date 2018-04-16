@@ -1,5 +1,4 @@
 ﻿import * as React from "react";
-import "squawk-react";
 import { TodoItem } from "../scripts/TodoItem";
 import { TodoEvents } from "../scripts/TodoEvents";
 
