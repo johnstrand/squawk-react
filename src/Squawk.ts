@@ -3,9 +3,10 @@ import { Component } from "react";
 declare module "react" {
     interface Component<P, S> {
         __squawk_identity: string;
+        clear(message: string): void;
         getMessage<T>(message: string): T | undefined;
         getRegistrations(): string[];
-        register<T>(message: string, callback: (value: T) => void): void;
+        register<T>(message: string, callback: (value: T) => void, ignoreLast?: boolean): void;
         send(message: string, value: any): void;
         squawk(name: string): void;
         unregister(message?: string): void;
@@ -22,6 +23,14 @@ declare module "react" {
     const squawkHistory: {
         [message: string]: any
     } = {};
+
+    /**
+     * Removes the last seen message of the specified type
+     * @param {string} message Message type
+     */
+    Component.prototype.clear = function(message: string): void {
+        squawkHistory[message] = undefined;
+    }
 
     /**
      * Retrieves the last seen message of the specified type
@@ -50,8 +59,9 @@ declare module "react" {
      * be immediately invoked with the last seen message.
      * @param {string} message The message type
      * @param {(value: T) => void} callback The callback which will be invoked when a message of previously specified type appears
+     * @param {boolean} ignoreLast Indicates that the callback should not be immediately called even if there exists a previous message of the specified type
      */
-    Component.prototype.register = function <T>(message: string, callback: (value: T) => void): void {
+    Component.prototype.register = function <T>(message: string, callback: (value: T) => void, skipLast?: boolean): void {
         if (!squawkRegistry[message]) {
             squawkRegistry[message] = {};
         }
@@ -64,7 +74,8 @@ declare module "react" {
 
         squawkRegistry[message][subscriber] = callback;
 
-        if (squawkHistory[message]) {
+        // Immediately run callback if previous message exists, and skipLast flag is set to false
+        if (!skipLast && squawkHistory[message]) {
             callback(squawkHistory[message]);
         }
     };
