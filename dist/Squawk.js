@@ -35,7 +35,7 @@ import { Component } from "react";
      * be immediately invoked with the last seen message.
      * @param {string} message The message type
      * @param {(value: T) => void} callback The callback which will be invoked when a message of previously specified type appears
-     * @param {boolean} ignoreLast Indicates that the callback should not be immediately called even if there exists a previous message of the specified type
+     * @param {boolean} skipLast Indicates that the callback should not be immediately called even if there exists a previous message of the specified type
      */
     Component.prototype.register = function (message, callback, skipLast) {
         if (!squawkRegistry[message]) {
