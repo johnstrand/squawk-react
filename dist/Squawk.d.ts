@@ -8,6 +8,7 @@ declare module "react" {
         send(message: string, value: any): void;
         squawk(name: string): void;
         unregister(message?: string): void;
+        setLogging(enabled: boolean): void;
     }
 }
 export {};

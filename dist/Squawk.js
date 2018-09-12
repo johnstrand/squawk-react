@@ -1,12 +1,34 @@
 import { Component } from "react";
 (function () {
+    /**
+     * Contains a list of messages and their subscribers
+     */
     var squawkRegistry = {};
+    /**
+     * Contains the last payload of each message type
+     */
     var squawkHistory = {};
+    var loggingEnabled = false;
+    var log = function (text) {
+        if (!loggingEnabled) {
+            return;
+        }
+        console.log(log);
+    };
+    /**
+     * Sets whether or not logging is enabled
+     * @param {boolean} enabled Sets logging enabled or disabled
+     */
+    Component.prototype.setLogging = function (enabled) {
+        loggingEnabled = enabled;
+        log('Logging enabled');
+    };
     /**
      * Removes the last seen message of the specified type
      * @param {string} message Message type
      */
     Component.prototype.clear = function (message) {
+        log("Cleared messages of type " + message);
         squawkHistory[message] = undefined;
     };
     /**
@@ -38,6 +60,7 @@ import { Component } from "react";
      * @param {boolean} ignoreLast Indicates that the callback should not be immediately called even if there exists a previous message of the specified type
      */
     Component.prototype.register = function (message, callback, skipLast) {
+        log("Registering subscriber " + this.__squawk_identity + " for " + message);
         if (!squawkRegistry[message]) {
             squawkRegistry[message] = {};
         }
@@ -57,6 +80,7 @@ import { Component } from "react";
      * @param {any} value The message value
      */
     Component.prototype.send = function (message, value) {
+        log(this.__squawk_identity + " sending " + message);
         squawkHistory[message] = value;
         if (!squawkRegistry[message]) {
             return;
