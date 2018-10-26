@@ -126,7 +126,9 @@ declare module "react" {
    * @param {any} value The message value, or reducer, which will receive the previous value as a parameter
    */
   Component.prototype.send = function(message: string, value: any): void {
-    const oldValue = squawkHistory[message];
+    if (typeof value === "function") {
+      value = value(squawkHistory[message]);
+    }
     squawkHistory[message] = value;
     if (!squawkRegistry[message]) {
       return;
@@ -138,12 +140,7 @@ declare module "react" {
       if (!callback) {
         return;
       }
-      if (typeof value === "function") {
-        const newState = value(oldValue);
-        callback(newState);
-      } else {
-        callback(value);
-      }
+      callback(value);
     });
   };
 
