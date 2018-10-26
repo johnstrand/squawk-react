@@ -28,7 +28,6 @@ export class Source extends React.Component<{}, ISourceState> {
 
   private sendMessage = () => {
     this.send("add_message", (messages: string[]) => {
-        console.log(messages);
       if (!messages) {
         messages = [];
       }
