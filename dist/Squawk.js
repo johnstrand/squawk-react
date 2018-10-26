@@ -21,7 +21,7 @@ import { Component } from "react";
      */
     Component.prototype.setLogging = function (enabled) {
         loggingEnabled = enabled;
-        log('Logging enabled');
+        log("Logging enabled");
     };
     /**
      * Removes the last seen message of the specified type
@@ -77,19 +77,22 @@ import { Component } from "react";
     /**
      * Sends a message of the specified type and value
      * @param {string} message The message type
-     * @param {any} value The message value
+     * @param {any} value The message value, or reducer, which will receive the previous value as a parameter
      */
     Component.prototype.send = function (message, value) {
-        log(this.__squawk_identity + " sending " + message);
+        if (typeof value === "function") {
+            value = value(squawkHistory[message]);
+        }
         squawkHistory[message] = value;
         if (!squawkRegistry[message]) {
             return;
         }
         Object.getOwnPropertyNames(squawkRegistry[message]).forEach(function (subscriber) {
             var callback = squawkRegistry[message][subscriber];
-            if (callback) {
-                callback(value);
+            if (!callback) {
+                return;
             }
+            callback(value);
         });
     };
     /**
@@ -116,7 +119,7 @@ import { Component } from "react";
         }
         else {
             var messages = Object.getOwnPropertyNames(squawkRegistry);
-            messages.forEach(function (message) { return squawkRegistry[message][subscriber] = undefined; });
+            messages.forEach(function (message) { return (squawkRegistry[message][subscriber] = undefined); });
         }
     };
 })();
