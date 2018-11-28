@@ -15,7 +15,6 @@ declare module "react" {
         send(message: string, value: any): void;
         squawk(name: string): void;
         unregister(message?: string): void;
-        setLogging(enabled: boolean): void;
     }
 }
 
@@ -36,30 +35,11 @@ declare module "react" {
         [message: string]: any;
     } = {};
 
-    let loggingEnabled: boolean = false;
-
-    const log: (text: string) => void = (text: string) => {
-        if (!loggingEnabled) {
-            return;
-        }
-        console.log(log);
-    };
-
-    /**
-     * Sets whether or not logging is enabled
-     * @param {boolean} enabled Sets logging enabled or disabled
-     */
-    Component.prototype.setLogging = function(enabled: boolean): void {
-        loggingEnabled = enabled;
-        log("Logging enabled");
-    };
-
     /**
      * Removes the last seen message of the specified type
      * @param {string} message Message type
      */
     Component.prototype.clear = function(message: string): void {
-        log(`Cleared messages of type ${message}`);
         squawkHistory[message] = undefined;
     };
 
@@ -101,7 +81,6 @@ declare module "react" {
         callback: (value: T) => void,
         skipLast?: boolean
     ): void {
-        log(`Registering subscriber ${this.__squawk_identity} for ${message}`);
         if (!squawkRegistry[message]) {
             squawkRegistry[message] = {};
         }
@@ -128,7 +107,6 @@ declare module "react" {
      * @param {any} value The message value
      */
     Component.prototype.send = function(message: string, value: any): void {
-        log(`${this.__squawk_identity} sending ${message}`);
         squawkHistory[message] = value;
         if (!squawkRegistry[message]) {
             return;
