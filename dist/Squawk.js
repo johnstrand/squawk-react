@@ -74,18 +74,22 @@ import * as React from "react";
     /**
      * Sends a message of the specified type and value
      * @param {string} message The message type
-     * @param {any} value The message value
+     * @param {any} value The message value, or reducer, which will receive the previous value as a parameter
      */
     Component.prototype.send = function (message, value) {
+        if (typeof value === "function") {
+            value = value(squawkHistory[message]);
+        }
         squawkHistory[message] = value;
         if (!squawkRegistry[message]) {
             return;
         }
         Object.getOwnPropertyNames(squawkRegistry[message]).forEach(function (subscriber) {
             var callback = squawkRegistry[message][subscriber];
-            if (callback) {
-                callback(value);
+            if (!callback) {
+                return;
             }
+            callback(value);
         });
     };
     /**
