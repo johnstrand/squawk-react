@@ -1,3 +1,4 @@
+import * as React from "react";
 declare module "react" {
     interface Component<P, S> {
         __squawk_identity: string;
@@ -8,7 +9,6 @@ declare module "react" {
         send(message: string, value: any): void;
         squawk(name: string): void;
         unregister(message?: string): void;
-        setLogging(enabled: boolean): void;
     }
 }
-export {};
+export declare function squawk(Component: React.ComponentType): React.ComponentType;

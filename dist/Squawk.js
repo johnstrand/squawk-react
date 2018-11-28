@@ -1,4 +1,18 @@
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    }
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
 import { Component } from "react";
+import * as React from "react";
 (function () {
     /**
      * Contains a list of messages and their subscribers
@@ -8,27 +22,11 @@ import { Component } from "react";
      * Contains the last payload of each message type
      */
     var squawkHistory = {};
-    var loggingEnabled = false;
-    var log = function (text) {
-        if (!loggingEnabled) {
-            return;
-        }
-        console.log(log);
-    };
-    /**
-     * Sets whether or not logging is enabled
-     * @param {boolean} enabled Sets logging enabled or disabled
-     */
-    Component.prototype.setLogging = function (enabled) {
-        loggingEnabled = enabled;
-        log('Logging enabled');
-    };
     /**
      * Removes the last seen message of the specified type
      * @param {string} message Message type
      */
     Component.prototype.clear = function (message) {
-        log("Cleared messages of type " + message);
         squawkHistory[message] = undefined;
     };
     /**
@@ -60,7 +58,6 @@ import { Component } from "react";
      * @param {boolean} ignoreLast Indicates that the callback should not be immediately called even if there exists a previous message of the specified type
      */
     Component.prototype.register = function (message, callback, skipLast) {
-        log("Registering subscriber " + this.__squawk_identity + " for " + message);
         if (!squawkRegistry[message]) {
             squawkRegistry[message] = {};
         }
@@ -80,7 +77,6 @@ import { Component } from "react";
      * @param {any} value The message value
      */
     Component.prototype.send = function (message, value) {
-        log(this.__squawk_identity + " sending " + message);
         squawkHistory[message] = value;
         if (!squawkRegistry[message]) {
             return;
@@ -116,7 +112,29 @@ import { Component } from "react";
         }
         else {
             var messages = Object.getOwnPropertyNames(squawkRegistry);
-            messages.forEach(function (message) { return squawkRegistry[message][subscriber] = undefined; });
+            messages.forEach(function (message) { return (squawkRegistry[message][subscriber] = undefined); });
         }
     };
 })();
+export function squawk(Component) {
+    var generateName = function () {
+        return Math.random()
+            .toString(36)
+            .substring(7);
+    };
+    return /** @class */ (function (_super) {
+        __extends(class_1, _super);
+        function class_1(props) {
+            var _this = _super.call(this, props) || this;
+            Component.prototype.squawk(generateName());
+            return _this;
+        }
+        class_1.prototype.render = function () {
+            return React.createElement(Component, null);
+        };
+        class_1.prototype.componentWillUnmount = function () {
+            Component.prototype.unregister();
+        };
+        return class_1;
+    }(React.Component));
+}
