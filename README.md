@@ -1,37 +1,89 @@
 # squawk-react
 A simple support library to insert message passing capabilities into React components.
 
-The example folder contains a simple todo-app, demonstrating the capabilities of the component.
+Note: The architecture is rewritten with squawk-react 2.0
+
+The tracker sent into the squawk method exposes three methods:
+* send - Which specifies the name of the event to send, and a reducer which receives the current value of the event and is expected to return the new value
+* register - Which specifies the name of the event to listen for, and the callback to invoke when the event is raised
+* get - Which specifes which event to get the last known value for
 
 Use it as such:
 ```typescript
-import 'squawk-react';
+// Producer
+import * as React from "react";
+import { squawk } from "squawk-react";
 
-...
-
-public componentDidMount() {
-    this.squawk('my_component_name'); // This helps Squawk track the subscriber
-    this.register<number>('a_message_type', (num) => {
-      this.setState({ myNumber: num });
-    });
+interface IAddItemState {
+    text: string;
 }
 
-public componentWillUnmount() {
-    this.unregister(); // Unregister all of the component's subscriptions
+export const AddItem = squawk(
+    tracker =>
+        class extends React.Component<{}, IAddItemState> {
+            constructor(props: {}) {
+                super(props);
+                this.state = {
+                    text: ""
+                };
+            }
+            itemTextChange = (ev: React.SyntheticEvent<HTMLInputElement>) => {
+                this.setState({ text: ev.currentTarget.value });
+            };
+            addItem = () => {
+                tracker.send<string[]>("ITEM_LIST", list => [...(list || []), this.state.text]);
+                this.setState({ text: "" });
+            };
+            render() {
+                return (
+                    <div>
+                        <input
+                            type="text"
+                            value={this.state.text}
+                            onChange={this.itemTextChange}
+                        />
+                        <button
+                            disabled={!this.state.text}
+                            onClick={this.addItem}
+                        >
+                            Add
+                        </button>
+                    </div>
+                );
+            }
+        }
+);
+
+// Consumer
+import * as React from "react";
+import { squawk } from "squawk-react";
+
+interface IItemListState {
+    items: string[];
 }
+
+export const ItemList = squawk(
+    tracker =>
+        class extends React.Component<{}, IItemListState> {
+            constructor(props: {}) {
+                super(props);
+                this.state = {
+                    items: tracker.get<string[]>("ITEM_LIST") || []
+                };
+
+                tracker.register<string[]>("ITEM_LIST", items =>
+                    this.setState({ items })
+                );
+            }
+            render() {
+                return (
+                    <div>
+                        {this.state.items.map((item, index) => (
+                            <p key={index}>{item}</p>
+                        ))}
+                    </div>
+                );
+            }
+        }
+);
 ```
-
-There is also a send method, with two overloads:
-
-The first one will simply send a message
-```typescript
-this.send('another_message_type', 'hello world!');
-```
-
-The second one works as a reducer, the callback receive the current (latest) value of the specified message, and is expected to return a new value
-```typescript
-this.send('another_message_type', messages => [...messages, 'hello world']);
-```
-
-If a message has already been sent for a certain type, any later subscribers will receive a copy of the last message sent, immediately
-on a call to register()
