@@ -57,7 +57,11 @@ const RootTracker = (() => {
     };
 })();
 
-export function squawk<P, S>(
+function update<T>(event: string, reducer: (current: T) => T): void {
+    RootTracker.send(event, reducer);
+}
+
+function squawk<P, S>(
     componentTypeConstructor: (tracker: Tracker) => React.ComponentType
 ): React.ComponentType {
     const generateName = (): string =>
@@ -91,3 +95,5 @@ export function squawk<P, S>(
         }
     };
 }
+
+export { squawk, update };
