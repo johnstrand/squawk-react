@@ -7,5 +7,6 @@ declare type Tracker = {
     /** Gets the last value transmitted for a specified event */
     get: <T>(event: string) => T;
 };
-export declare function squawk<P, S>(componentTypeConstructor: (tracker: Tracker) => React.ComponentType): React.ComponentType;
-export {};
+declare function update<T>(event: string, reducer: (current: T) => T): void;
+declare function squawk<P, S>(componentTypeConstructor: (tracker: Tracker) => React.ComponentType): React.ComponentType;
+export { squawk, update };

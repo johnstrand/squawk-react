@@ -45,7 +45,10 @@ var RootTracker = (function () {
         }
     };
 })();
-export function squawk(componentTypeConstructor) {
+function update(event, reducer) {
+    RootTracker.send(event, reducer);
+}
+function squawk(componentTypeConstructor) {
     var generateName = function () {
         return Math.random()
             .toString(36)
@@ -78,3 +81,4 @@ export function squawk(componentTypeConstructor) {
         return class_1;
     }(React.Component));
 }
+export { squawk, update };
