@@ -10,7 +10,14 @@ The tracker sent into the squawk method exposes three methods:
 
 Use it as such:
 ```typescript
-// Producer
+// For services
+import { update } from "squawk-react";
+
+...
+
+update("MY_NUMBER", num => num + 1);
+
+// Producer component
 import * as React from "react";
 import { squawk } from "squawk-react";
 
@@ -54,7 +61,7 @@ export const AddItem = squawk(
         }
 );
 
-// Consumer
+// Consumer component
 import * as React from "react";
 import { squawk } from "squawk-react";
 
