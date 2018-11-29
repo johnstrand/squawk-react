@@ -6,7 +6,7 @@ Note: The architecture is rewritten with squawk-react 2.0
 The tracker sent into the squawk method exposes three methods:
 * send - Which specifies the name of the event to send, and a reducer which receives the current value of the event and is expected to return the new value
 * register - Which specifies the name of the event to listen for, and the callback to invoke when the event is raised
-* get - Which specifes which event to get the last known value for
+* get - Which specifies which event to get the last known value for
 
 Use it as such:
 ```typescript
