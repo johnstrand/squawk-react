@@ -1,15 +1,11 @@
 import * as React from "react";
-declare module "react" {
-    interface Component<P, S> {
-        __squawk_identity: string;
-        clear(message: string): void;
-        getMessage<T>(message: string): T | undefined;
-        getRegistrations(): string[];
-        register<T>(message: string, callback: (value: T) => void, ignoreLast?: boolean): void;
-        send(message: string, reducer: (state: any) => any): void;
-        send(message: string, value: any): void;
-        squawk(name: string): void;
-        unregister(message?: string): void;
-    }
-}
-export declare function squawk(Component: React.ComponentType): React.ComponentType;
+declare type Tracker = {
+    /** Registers a callback for the specified event */
+    register: <T>(event: string, callback: (value: T) => void) => void;
+    /** Sends an event, the reducer will receive the current value and is expected to return the new value */
+    send: <T>(event: string, reducer: (current: T) => T) => void;
+    /** Gets the last value transmitted for a specified event */
+    get: <T>(event: string) => T;
+};
+export declare function squawk<P, S>(componentTypeConstructor: (tracker: Tracker) => React.ComponentType): React.ComponentType;
+export {};
