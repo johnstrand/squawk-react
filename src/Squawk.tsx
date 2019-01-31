@@ -87,7 +87,7 @@ function squawk<P, S>(
 
     return class extends React.Component<P, S> {
         render() {
-            return <ConstructedType />;
+            return <ConstructedType {...this.props} />;
         }
 
         componentWillUnmount() {
