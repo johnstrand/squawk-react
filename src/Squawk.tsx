@@ -21,6 +21,7 @@ export function createStore<IStore>(initalState: Partial<IStore>) {
 
     type StoreKey = keyof IStore;
     type Reducer<T extends StoreKey> = (value: IStore[T]) => IStore[T];
+    type Callback<T extends StoreKey> = (value: IStore[T]) => void;
 
     const get = <T extends StoreKey>(event: T) => state[event];
     const subscribe = <T extends StoreKey>(event: T, subscriber: string, callback: (value: IStore[T]) => void) => {
@@ -48,15 +49,15 @@ export function createStore<IStore>(initalState: Partial<IStore>) {
     return {
         get,
         update,
-        subscribe<T extends StoreKey>(event: T, callback: (value: IStore[T]) => void) {
+        subscribe<T extends StoreKey>(event: T, callback: Callback<T>) {
             const name = generateName();
             subscribe(event, name, callback);
             return name;
         },
         unsubscribe,
-        squawk<P, S>(
+        squawk<P>(
             componentTypeConstructor: (tracker: Tracker<IStore>) => React.ComponentType
-        ): React.ComponentType {
+        ): React.ComponentType<P> {
             const name = generateName();
 
             const trackerWrapper: Tracker<IStore> = {
@@ -69,7 +70,7 @@ export function createStore<IStore>(initalState: Partial<IStore>) {
 
             const ConstructedType = componentTypeConstructor(trackerWrapper);
 
-            return class extends React.Component<P, S> {
+            return class extends React.Component<P> {
                 render() {
                     return <ConstructedType {...this.props} />;
                 }
