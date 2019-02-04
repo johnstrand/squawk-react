@@ -17,9 +17,9 @@
     "author": "John Strand",
     "license": "MIT",
     "devDependencies": {
-        "@types/react": "^16.1.0",
-        "react": "^16.2.0",
-        "typescript": "^3.1.6"
+        "@types/react": "^16.8.1",
+        "react": "^16.7.0",
+        "typescript": "^3.3.1"
     },
     "dependencies": {}
 }
