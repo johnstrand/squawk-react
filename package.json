@@ -1,22 +1,25 @@
 {
-  "name": "squawk-react",
-  "version": "2.1.1",
-  "description": "Squawk is a simple support library to insert message passing capabilities into React components",
-  "main": "dist/Squawk.js",
-  "types": "dist/Squawk.d.ts",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/johnstrand/squawk-react"
-  },
-  "scripts": {
-    "build": "node_modules/.bin/tsc"
-  },
-  "author": "John Strand",
-  "license": "MIT",
-  "devDependencies": {
-    "@types/react": "^16.1.0",
-    "react": "^16.2.0",
-    "typescript": "^3.1.6"
-  },
-  "dependencies": {}
+    "name": "squawk-react",
+    "version": "2.1.1",
+    "description": "Squawk is a simple support library to insert message passing capabilities into React components",
+    "main": "dist/Squawk.js",
+    "types": "dist/Squawk.d.ts",
+    "files": [
+        "dist"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/johnstrand/squawk-react"
+    },
+    "scripts": {
+        "build": "node_modules/.bin/tsc"
+    },
+    "author": "John Strand",
+    "license": "MIT",
+    "devDependencies": {
+        "@types/react": "^16.1.0",
+        "react": "^16.2.0",
+        "typescript": "^3.1.6"
+    },
+    "dependencies": {}
 }
