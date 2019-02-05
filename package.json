@@ -12,6 +12,7 @@
         "url": "https://github.com/johnstrand/squawk-react"
     },
     "scripts": {
+        "build": "node_modules/.bin/tsc",
         "prepublishOnly": "node_modules/.bin/tsc"
     },
     "author": "John Strand",
