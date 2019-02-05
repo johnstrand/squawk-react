@@ -14,14 +14,6 @@ export function createStore<IStore>(initalState: IStore) {
     type StoreKey = keyof IStore;
     type Reducer<T extends StoreKey> = (value: IStore[T]) => IStore[T];
     type Callback<T extends StoreKey> = (value: IStore[T]) => any;
-    type Tracker<IStore> = {
-        /** Registers a callback for the specified event */
-        subscribe<T extends keyof IStore>(event: T, callback: (value: IStore[T]) => void): void;
-        /** Sends an event, the reducer will receive the current value and is expected to return the new value */
-        update<T extends keyof IStore>(event: T, reducer: (current: IStore[T]) => IStore[T]): void;
-        /** Gets the last value transmitted for a specified event */
-        get<T extends keyof IStore>(event: T): IStore[T];
-    }
 
     const get = <T extends StoreKey>(event: T) => state[event];
     const subscribe = <T extends StoreKey>(event: T, subscriber: string, callback: Callback<T>) => {
