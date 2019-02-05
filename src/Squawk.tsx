@@ -1,30 +1,30 @@
 import * as React from "react";
 
-type Tracker<T> = {
-    /** Registers a callback for the specified event */
-    subscribe: (event: keyof T, callback: (value: T[keyof T]) => void) => void;
-    /** Sends an event, the reducer will receive the current value and is expected to return the new value */
-    update: (event: keyof T, reducer: (current: T[keyof T]) => T[keyof T]) => void;
-    /** Gets the last value transmitted for a specified event */
-    get: (event: keyof T) => T[keyof T];
-}
 type IDictionary<TValue> = { [key: string]: TValue };
 
-export function createStore<IStore>(initalState: Partial<IStore>) {
+export function createStore<IStore>(initalState: IStore) {
     const generateName = (): string =>
         Math.random()
             .toString(36)
             .substring(7);
     
     const state = initalState;
-    const callbacks: IDictionary<IDictionary<(value: unknown) => void>> & object = {};
+    const callbacks: IDictionary<IDictionary<(value: any) => void>> & object = {};
 
     type StoreKey = keyof IStore;
     type Reducer<T extends StoreKey> = (value: IStore[T]) => IStore[T];
     type Callback<T extends StoreKey> = (value: IStore[T]) => void;
+    type Tracker<IStore> = {
+        /** Registers a callback for the specified event */
+        subscribe<T extends keyof IStore>(event: T, callback: (value: IStore[T]) => void): void;
+        /** Sends an event, the reducer will receive the current value and is expected to return the new value */
+        update<T extends keyof IStore>(event: T, reducer: (current: IStore[T]) => IStore[T]): void;
+        /** Gets the last value transmitted for a specified event */
+        get<T extends keyof IStore>(event: T): IStore[T];
+    }
 
     const get = <T extends StoreKey>(event: T) => state[event];
-    const subscribe = <T extends StoreKey>(event: T, subscriber: string, callback: (value: IStore[T]) => void) => {
+    const subscribe = <T extends StoreKey>(event: T, subscriber: string, callback: Callback<T>) => {
         if(!callbacks.hasOwnProperty(event)) {
             callbacks[event as string] = {};
         }
@@ -56,7 +56,7 @@ export function createStore<IStore>(initalState: Partial<IStore>) {
         },
         unsubscribe,
         squawk<P>(
-            componentTypeConstructor: (tracker: Tracker<IStore>) => React.ComponentType
+            componentTypeConstructor: (tracker: Tracker<IStore>) => React.ComponentType<P>
         ): React.ComponentType<P> {
             const name = generateName();
 
