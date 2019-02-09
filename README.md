@@ -12,7 +12,7 @@ Using this starts by creating a store:
 ```typescript
 function createStore<T>(initalState: T)
 
-export const { get, subscribe, unsubscribe, update, squawk } = createStore<IAppState>({ /* ... */ })
+export const { get, subscribe, unsubscribe, update, squawk, createBinder } = createStore<IAppState>({ /* ... */ })
 ```
 
 The type T describes the root object of the store, and the argument is the initial state. 
@@ -30,6 +30,7 @@ const value = get("myEvent");
 ```
 
 Fetches the current value of the specified event.
+
 ## subscribe
 
 ```typescript
@@ -66,7 +67,7 @@ Updates the event value via a reducer. The reducer receives the current value of
 squawk(componentConstructor)
 ```
 
-Finally, the squawk method creates a HoC that wraps the specified component. It expects a function that receives a subscription function, and returns a component. The subscription method looks like the one above, but does not return a name. It follows the life cycle of the wrapping component, and clears all subscriptions when the component unmounts.
+The squawk method creates a HoC that wraps the specified component. It expects a function that receives a subscription function, and returns a component. The subscription method looks like the one above, but does not return a name. It follows the life cycle of the wrapping component, and clears all subscriptions when the component unmounts.
 
 Using the method could look something like this
 ```typescript
@@ -80,5 +81,28 @@ export const MyComponent = squawk(subscribe => class extends React.Component {
     }
 });
 ```
+
+## createBinder
+
+```typescript
+createBinder(ref, subscriber);
+```
+
+This is a helper method to reduce the amount of boilerplate in cases where the global state has the same name as the local state, and is bound without any modification. Compare to the above squawk example, assume that the state property is also called myEvent, then the code would look like this:
+
+```typescript
+subscribe("myEvent", myEvent => this.setState({ myEvent }));
+```
+
+Instead, one could import createBinder and use it as such:
+```typescript
+bind = createBinder(this, subscribe); // subscribe being the subscription method injected in squawk
+// And then later
+componentDidMount() {
+    this.bind("myEvent");
+}
+```
+
+For this to work, the two properties must have exactly the same name
 
 There is a sample application available at https://johnstrand.github.io/squawk/build/index.html.
