@@ -57,6 +57,17 @@ export function createStore<IStore>(initalState: IStore) {
             return name;
         },
         unsubscribe,
+        createBinder(
+            ref: React.Component,
+            subscriber: <T extends StoreKey>(
+                event: T,
+                callback: (value: IStore[T]) => any
+            ) => any
+        ) {
+            return <T extends StoreKey>(event: T) => {
+                subscriber(event, value => ref.setState({ [event]: value }));
+            };
+        },
         squawk<P>(
             componentTypeConstructor: (
                 subscribe: <T extends StoreKey>(
