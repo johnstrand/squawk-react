@@ -8,7 +8,7 @@ export function createStore<IStore>(initialState: IStore) {
             .toString(36)
             .substring(7);
 
-    // Set inital state, could possibly use JSON.stringify/parse to break references
+    // Set initial state, could possibly use JSON.stringify/parse to break references
     const state = initialState;
     // The callback structure is callbacks[event][subscriber]
     const callbacks: IDictionary<IDictionary<(value: any) => void>> &
