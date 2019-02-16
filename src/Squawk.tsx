@@ -2,14 +2,14 @@ import * as React from "react";
 
 type IDictionary<TValue> = { [key: string]: TValue };
 
-export function createStore<IStore>(initalState: IStore) {
+export function createStore<IStore>(initialState: IStore) {
     const generateName = (): string =>
         Math.random()
             .toString(36)
             .substring(7);
 
     // Set inital state, could possibly use JSON.stringify/parse to break references
-    const state = initalState;
+    const state = initialState;
     // The callback structure is callbacks[event][subscriber]
     const callbacks: IDictionary<IDictionary<(value: any) => void>> &
         object = {};
