@@ -28,7 +28,6 @@ export function createStore<IStore>(initalState: IStore) {
         subscriber: string,
         callback: Callback<T>
     ) => {
-
         // Have we seen this event before? If not, add it
         if (!callbacks.hasOwnProperty(event)) {
             callbacks[event as string] = {};
@@ -86,8 +85,10 @@ export function createStore<IStore>(initalState: IStore) {
         ) {
             // Return a function that captures the component reference and subscriber callback
             // and simplifies subscribing to an event with the same name as a local event
-            return <T extends StoreKey>(event: T) => {
-                subscriber(event, value => ref.setState({ [event]: value }));
+            return <T extends StoreKey>(...events: T[]) => {
+                events.forEach(event =>
+                    subscriber(event, value => ref.setState({ [event]: value }))
+                );
             };
         },
         squawk<P>(
