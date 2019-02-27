@@ -8,6 +8,28 @@ export function createStore<IStore>(initialState: IStore) {
             .toString(36)
             .substring(7);
 
+    const eventsFromReducer = (reducer: Function) => {
+        const reducerSrc: string = reducer.toString();
+        var m = new RegExp(/function(\s+\w+)?\s*\((.+?)\)/).exec(reducerSrc);
+        let stateVar: string;
+        if (m) {
+            stateVar = m[2];
+        } else {
+            m = new RegExp(/\(?(\w+)\)?\s*=>/).exec(reducerSrc);
+            if (!m) {
+                throw new Error(`Unable to parse reducer`);
+            }
+            stateVar = m[1];
+        }
+        const re = new RegExp(stateVar + "\\.(\\w+)", "g");
+        const events: { [key: string]: boolean } = {};
+        while (!!(m = re.exec(reducerSrc))) {
+            events[m[1]] = true;
+        }
+
+        return Object.getOwnPropertyNames(events);
+    };
+
     // Set initial state, could possibly use JSON.stringify/parse to break references
     const state = initialState;
     // The callback structure is callbacks[event][subscriber]
@@ -123,6 +145,36 @@ export function createStore<IStore>(initialState: IStore) {
 
                 componentWillUnmount() {
                     // When the HoC is unmounted, remove the subscriptions
+                    unsubscribe(name);
+                }
+            };
+        },
+        connect<P>(
+            Component: React.FunctionComponent<P>,
+            reducer: (state: IStore) => Pick<P, keyof P>
+        ) {
+            const name = generateName();
+            return class extends React.Component<P, P> {
+                constructor(props: P) {
+                    super(props);
+                    this.state = reducer({ ...props, ...state });
+                }
+                render() {
+                    const { props, state } = this;
+                    const combined = { ...props, ...state };
+                    return <Component {...combined} />;
+                }
+
+                componentWillMount() {
+                    const events: string[] = eventsFromReducer(reducer);
+                    events.forEach(event =>
+                        subscribe(event as keyof IStore, name, () => {
+                            this.setState(reducer(state));
+                        })
+                    );
+                }
+
+                componentWillUnmount() {
                     unsubscribe(name);
                 }
             };
