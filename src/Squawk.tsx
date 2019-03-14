@@ -2,7 +2,11 @@ import * as React from "react";
 
 type IDictionary<TValue> = { [key: string]: TValue };
 
-export function createStore<IStore>(initialState: IStore) {
+type NotNever<T> = Pick<T, ({
+    [P in keyof T]: T[P] extends never ? never : P
+})[keyof T]>;
+
+export function createStore<IStore>(initialState: NotNever<IStore>) {
     const generateName = (): string =>
         Math.random()
             .toString(36)
@@ -31,7 +35,7 @@ export function createStore<IStore>(initialState: IStore) {
     };
 
     // Set initial state, could possibly use JSON.stringify/parse to break references
-    const state = initialState;
+    const state = initialState as IStore;
     // The callback structure is callbacks[event][subscriber]
     const callbacks: IDictionary<IDictionary<(value: any) => void>> &
         object = {};
@@ -67,13 +71,15 @@ export function createStore<IStore>(initialState: IStore) {
         });
     };
 
-    const update = <T extends StoreKey>(
+    function update<T extends StoreKey>(event: IStore[T] extends never ? T : never): void;
+    function update<T extends StoreKey>(event: T, reducer: Reducer<T>): void;
+    function update<T extends StoreKey>(
         event: T,
-        reducer: Reducer<T>
-    ): void => {
+        reducer?: Reducer<T>
+    ): void {
         // Calculate the new value by passing the current value to the reducer
-        const newValue = reducer(state[event]);
-        state[event] = newValue;
+        const newValue = !!reducer ? reducer(state[event]) : undefined;
+        state[event] = newValue as IStore[T];
         // If no one is listening, exit the method here
         if (!callbacks.hasOwnProperty(event)) {
             return;
