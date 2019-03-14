@@ -17,7 +17,7 @@ export const { get, subscribe, unsubscribe, update, squawk, createBinder } = cre
 
 The type T describes the root object of the store, and the argument is the initial state. 
 
-Any time an event is referenced, it is one of the root properties of T (via keyof T)
+Any time an event is referenced, it is one of the root properties of T (via keyof T). Squawk also handles events without data, by adding a property of type never to the type T.
 
 The function returns an object with 5 methods:
 
@@ -39,7 +39,7 @@ subscribe(event, callback)
 const id = subscribe("myEvent", value => { /* ... */ });
 ```
 
-Creates a subscription for the specified event, invoking the callback with the new value whenver the event is invoked. The method returns a random name which can later be used to cancel the subscription.
+Creates a subscription for the specified event, invoking the callback with the new value whenver the event is invoked. The method returns a random name which can later be used to cancel the subscription. For events without payload, value will have type never and the value undefined.
 
 ## unsubscribe
 
@@ -57,9 +57,10 @@ Removes the specified subscription.
 update(event, reducer)
 
 update("myEvent", value => value + 1);
+update("myEventWithoutValue");
 ```
 
-Updates the event value via a reducer. The reducer receives the current value of the event and is expected to return the new value. Resist the urge to modify the value, and instead treat it as immutable.
+Updates the event value via a reducer. The reducer receives the current value of the event and is expected to return the new value. Resist the urge to modify the value, and instead treat it as immutable. For events without value, the update method requires only an event name, and the reducer should be omitted.
 
 ## squawk
 
