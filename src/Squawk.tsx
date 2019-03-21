@@ -184,6 +184,15 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
                     unsubscribe(name);
                 }
             };
+        },
+        SquawkComponent: class<P, S> extends React.Component<P, S> {
+            public name: string = generateName();
+            public subscribe<K extends keyof IStore>(event: K, callback: (value: IStore[K]) => void) {
+                subscribe(event, this.name, callback);
+            }
+            public componentWillUnmount() {
+                unsubscribe(this.name);
+            }
         }
     };
 }
