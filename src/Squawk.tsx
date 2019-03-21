@@ -79,6 +79,14 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
     ): void {
         // Calculate the new value by passing the current value to the reducer
         const newValue = !!reducer ? reducer(state[event]) : undefined;
+        
+        // If the value hasn't changed, don't bother with an update
+        // Unless the value is undefined, then we might be dealing with a
+        // pure event
+        if(state[event] === newValue && newValue !== undefined) {
+            return;
+        }
+
         state[event] = newValue as IStore[T];
         // If no one is listening, exit the method here
         if (!callbacks.hasOwnProperty(event)) {
@@ -185,7 +193,7 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
                 }
             };
         },
-        SquawkComponent: class<P, S> extends React.Component<P, S> {
+        SquawkComponent: class<P = any, S = any> extends React.Component<P, S> {
             public name: string = generateName();
             public subscribe<K extends keyof IStore>(event: K, callback: (value: IStore[K]) => void) {
                 subscribe(event, this.name, callback);
