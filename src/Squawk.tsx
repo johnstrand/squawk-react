@@ -2,9 +2,10 @@ import * as React from "react";
 
 type IDictionary<TValue> = { [key: string]: TValue };
 
-type NotNever<T> = Pick<T, ({
-    [P in keyof T]: T[P] extends never ? never : P
-})[keyof T]>;
+type NotNever<T> = Pick<
+    T,
+    ({ [P in keyof T]: T[P] extends never ? never : P })[keyof T]
+>;
 
 export function createStore<IStore>(initialState: NotNever<IStore>) {
     const generateName = (): string =>
@@ -71,19 +72,18 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
         });
     };
 
-    function update<T extends StoreKey>(event: IStore[T] extends never ? T : never): void;
-    function update<T extends StoreKey>(event: T, reducer: Reducer<T>): void;
     function update<T extends StoreKey>(
-        event: T,
-        reducer?: Reducer<T>
-    ): void {
+        event: IStore[T] extends never ? T : never
+    ): void;
+    function update<T extends StoreKey>(event: T, reducer: Reducer<T>): void;
+    function update<T extends StoreKey>(event: T, reducer?: Reducer<T>): void {
         // Calculate the new value by passing the current value to the reducer
         const newValue = !!reducer ? reducer(state[event]) : undefined;
-        
+
         // If the value hasn't changed, don't bother with an update
         // Unless the value is undefined, then we might be dealing with a
         // pure event
-        if(state[event] === newValue && newValue !== undefined) {
+        if (state[event] === newValue && newValue !== undefined) {
             return;
         }
 
@@ -100,7 +100,7 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
                 callbacks[event as string][subscriber](newValue);
             }
         );
-    };
+    }
 
     return {
         get,
@@ -135,31 +135,25 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
                 ) => void
             ) => React.ComponentType<P>
         ): React.ComponentType<P> {
-            // Create a random name for the HoC
-            const name = generateName();
-
-            // Wrap the subscribe method, using the previously generated name
-            const componentSubscribe = <T extends StoreKey>(
-                event: T,
-                callback: (value: IStore[T]) => any
-            ) => {
-                subscribe(event, name, callback);
-            };
-
-            // Create the component type by invoking the callback
-            // (Note that this does not create the component, it creates the class representing the component)
-            const ConstructedType = componentTypeConstructor(
-                componentSubscribe
-            );
-
             return class extends React.Component<P> {
+                public name = generateName();
+                public _type?: React.ComponentType<P>;
+
+                componentSubscribe = <T extends StoreKey>(
+                    event: T,
+                    callback: (value: IStore[T]) => any
+                ) => {
+                    subscribe(event, this.name, callback);
+                }
+
                 render() {
+                    const ConstructedType = (this._type || (this._type = componentTypeConstructor(this.componentSubscribe)));
                     return <ConstructedType {...this.props} />;
                 }
 
                 componentWillUnmount() {
                     // When the HoC is unmounted, remove the subscriptions
-                    unsubscribe(name);
+                    unsubscribe(this.name);
                 }
             };
         },
@@ -167,8 +161,8 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
             Component: React.FunctionComponent<P>,
             reducer: (state: IStore) => Pick<P, keyof P>
         ) {
-            const name = generateName();
             return class extends React.Component<P, P> {
+                public name: string;
                 constructor(props: P) {
                     super(props);
                     this.state = reducer({ ...props, ...state });
@@ -180,9 +174,10 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
                 }
 
                 componentWillMount() {
+                    this.name = generateName();
                     const events: string[] = eventsFromReducer(reducer);
                     events.forEach(event =>
-                        subscribe(event as keyof IStore, name, () => {
+                        subscribe(event as keyof IStore, this.name, () => {
                             this.setState(reducer(state));
                         })
                     );
@@ -195,7 +190,10 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
         },
         SquawkComponent: class<P = any, S = any> extends React.Component<P, S> {
             public name: string = generateName();
-            public subscribe<K extends keyof IStore>(event: K, callback: (value: IStore[K]) => void) {
+            public subscribe<K extends keyof IStore>(
+                event: K,
+                callback: (value: IStore[K]) => void
+            ) {
                 subscribe(event, this.name, callback);
             }
             public componentWillUnmount() {
