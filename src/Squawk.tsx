@@ -102,12 +102,16 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
         );
     }
 
+    const contexts: string[] = [];
+
     return {
         get,
         update,
         subscribe<T extends StoreKey>(event: T, callback: Callback<T>) {
-            // Generate a random name to use for setting up the subscription
-            const name = generateName();
+            // If any ambient context exists, use that, otherwise generate a random name to use for setting up the subscription
+            const name = contexts.length
+                ? contexts[contexts.length - 1]
+                : generateName();
             subscribe(event, name, callback);
             return name;
         },
@@ -128,31 +132,40 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
             };
         },
         squawk<P>(
-            componentTypeConstructor: (
-                subscribe: <T extends StoreKey>(
-                    event: T,
-                    callback: (value: IStore[T]) => any
-                ) => void
-            ) => React.ComponentType<P>
+            SquawkComponent: React.ComponentClass<P>
         ): React.ComponentType<P> {
-            return class extends React.Component<P> {
-                public name = generateName();
-                public _type?: React.ComponentType<P>;
+            return class extends SquawkComponent {
+                private name: string = generateName();
 
-                componentSubscribe = <T extends StoreKey>(
-                    event: T,
-                    callback: (value: IStore[T]) => any
-                ) => {
-                    subscribe(event, this.name, callback);
+                constructor(props: P) {
+                    // Ugly hack, or ugliest hack?
+                    super(
+                        (() => {
+                            contexts.push(generateName());
+                            return props;
+                        })()
+                    );
+                    this.name = contexts.pop() as string;
                 }
 
                 render() {
-                    const ConstructedType = (this._type || (this._type = componentTypeConstructor(this.componentSubscribe)));
-                    return <ConstructedType {...this.props} />;
+                    return super.render();
+                }
+
+                componentDidMount() {
+                    if (!super.componentDidMount) {
+                        return;
+                    }
+
+                    contexts.push(this.name);
+                    super.componentDidMount();
+                    contexts.pop();
                 }
 
                 componentWillUnmount() {
-                    // When the HoC is unmounted, remove the subscriptions
+                    if (super.componentWillUnmount) {
+                        super.componentWillUnmount();
+                    }
                     unsubscribe(this.name);
                 }
             };
