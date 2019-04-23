@@ -4,7 +4,15 @@
 
 A simple support library to insert message passing capabilities into React applications.
 
-Note: The architecture is rewritten with squawk-react 2.0
+Changes in 3.0:
+* subscribe is an ambient method now, much like useState in React Hooks
+* SquawkComponent class has been removed
+* unsubscribe() has been removed
+* subscribe now returns an unsubscribe method, rather than a component name
+
+Coming changes:
+* createBinder will be replaced with ambient bind() method
+* connect-method will be actually documented
 
 Unlike Flux-based implementations, squawk does not handle automatic injection via properties, but instead expects each component to track it's own state (and update it via the global state as needed)
 
@@ -15,7 +23,7 @@ Using this starts by creating a store:
 ```typescript
 function createStore<T>(initalState: T)
 
-export const { get, subscribe, unsubscribe, update, squawk, createBinder } = createStore<IAppState>({ /* ... */ })
+export const { get, subscribe, update, squawk, createBinder } = createStore<IAppState>({ /* ... */ })
 ```
 
 The type T describes the root object of the store, and the argument is the initial state. 
@@ -39,20 +47,14 @@ Fetches the current value of the specified event.
 ```typescript
 subscribe(event, callback)
 
-const id = subscribe("myEvent", value => { /* ... */ });
+const unsubMyEvent = subscribe("myEvent", value => { /* ... */ });
+/*
+...
+*/
+unsubMyEvent();
 ```
 
-Creates a subscription for the specified event, invoking the callback with the new value whenver the event is invoked. The method returns a random name which can later be used to cancel the subscription. For events without payload, value will have type never and the value undefined.
-
-## unsubscribe
-
-```typescript
-unsubscribe(subscriber)
-
-unsubscribe(id);
-```
-
-Removes the specified subscription.
+Creates a subscription for the specified event, invoking the callback with the new value whenver the event is invoked. The method returns a function which may later be used to cancel the subscription. For events without payload, value will have type never and the value undefined.
 
 ## update
 
@@ -71,11 +73,11 @@ Updates the event value via a reducer. The reducer receives the current value of
 squawk(componentConstructor)
 ```
 
-The squawk method creates a HoC that wraps the specified component. It expects a function that receives a subscription function, and returns a component. The subscription method looks like the one above, but does not return a name. It follows the life cycle of the wrapping component, and clears all subscriptions when the component unmounts.
+The squawk method creates a HoC that wraps the specified component. It expects a class component type, and can use the ambient subscribe method. The subscribe method may be called in the constructor or in componentDidMount, though it is advisable to only do so in componentDidMount. It follows the life cycle of the wrapping component, and clears all subscriptions when the component unmounts.
 
 Using the method could look something like this
 ```typescript
-export const MyComponent = squawk(subscribe => class extends React.Component {
+class MyComponent extends React.Component {
     render() {
         // ...
     }
@@ -84,6 +86,8 @@ export const MyComponent = squawk(subscribe => class extends React.Component {
         subscribe("myEvent", value => this.setState({ value }));
     }
 });
+
+export default squawk(MyComponent);
 ```
 
 ## createBinder

@@ -64,7 +64,12 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
         callbacks[event as string][subscriber] = callback;
     };
 
-    const unsubscribe = (subscriber: string) => {
+    const unsubscribe = <T extends StoreKey>(subscriber: string, event?: T) => {
+        if(event) {
+            delete callbacks[event as string][subscriber];
+            return;
+        }
+
         // Loop through all events in the callback root object
         Object.getOwnPropertyNames(callbacks).forEach(event => {
             // And delete the subscriber property (if the subscriber doesn't exist on the event, this is a no-op)
@@ -113,9 +118,8 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
                 ? contexts[contexts.length - 1]
                 : generateName();
             subscribe(event, name, callback);
-            return name;
+            return () => unsubscribe(name, event);
         },
-        unsubscribe,
         createBinder(
             ref: React.Component,
             subscriber: <T extends StoreKey>(
@@ -139,12 +143,16 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
 
                 constructor(props: P) {
                     // Ugly hack, or ugliest hack?
+                    // This makes sure that the current context is set
+                    // before invoking the parent constructor
                     super(
                         (() => {
                             contexts.push(generateName());
                             return props;
                         })()
                     );
+                    // Should potentially change this and forbid calls to subscribe
+                    // in constructor, because this is really dumb
                     this.name = contexts.pop() as string;
                 }
 
@@ -200,18 +208,6 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
                     unsubscribe(name);
                 }
             };
-        },
-        SquawkComponent: class<P = any, S = any> extends React.Component<P, S> {
-            public name: string = generateName();
-            public subscribe<K extends keyof IStore>(
-                event: K,
-                callback: (value: IStore[K]) => void
-            ) {
-                subscribe(event, this.name, callback);
-            }
-            public componentWillUnmount() {
-                unsubscribe(this.name);
-            }
         }
     };
 }
