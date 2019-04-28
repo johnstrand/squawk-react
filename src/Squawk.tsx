@@ -1,11 +1,21 @@
 import * as React from "react";
-
-type IDictionary<TValue> = { [key: string]: TValue };
+import { Stack } from "./Stack";
 
 type NotNever<T> = Pick<
     T,
     ({ [P in keyof T]: T[P] extends never ? never : P })[keyof T]
 >;
+
+type FunctionComponentHandler = {
+    callback: () => void;
+    events: Set<string>;
+};
+
+type FunctionComponentTracker = CallbackTracker<FunctionComponentHandler>;
+
+type CallbackTracker<T> = Map<string, T>;
+
+type ClassComponentTracker = Map<string, CallbackTracker<(value: any) => void>>;
 
 export function createStore<IStore>(initialState: NotNever<IStore>) {
     const generateName = (): string =>
@@ -13,33 +23,11 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
             .toString(36)
             .substring(7);
 
-    const eventsFromReducer = (reducer: Function) => {
-        const reducerSrc: string = reducer.toString();
-        var m = new RegExp(/function(\s+\w+)?\s*\((.+?)\)/).exec(reducerSrc);
-        let stateVar: string;
-        if (m) {
-            stateVar = m[2];
-        } else {
-            m = new RegExp(/\(?(\w+)\)?\s*=>/).exec(reducerSrc);
-            if (!m) {
-                throw new Error(`Unable to parse reducer`);
-            }
-            stateVar = m[1];
-        }
-        const re = new RegExp(stateVar + "\\.(\\w+)", "g");
-        const events: { [key: string]: boolean } = {};
-        while (!!(m = re.exec(reducerSrc))) {
-            events[m[1]] = true;
-        }
-
-        return Object.getOwnPropertyNames(events);
-    };
-
     // Set initial state, could possibly use JSON.stringify/parse to break references
     const state = initialState as IStore;
     // The callback structure is callbacks[event][subscriber]
-    const callbacks: IDictionary<IDictionary<(value: any) => void>> &
-        object = {};
+    const classComponentCallbacks: ClassComponentTracker = new Map();
+    const functionComponentCallbacks: FunctionComponentTracker = new Map();
 
     // Helper types to make things less verbose
     type StoreKey = keyof IStore;
@@ -47,7 +35,15 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
     type Callback<T extends StoreKey> = (value: IStore[T]) => any;
 
     // Simply returns the value of specified event
-    const get = <T extends StoreKey>(event: T) => state[event];
+    const get = <T extends StoreKey>(event: T) => {
+        if (renderingFunctionalComponent) {
+            const componentName = functionalComponentContexts.peek();
+            (functionComponentCallbacks.get(
+                componentName
+            ) as FunctionComponentHandler).events.add(event as string);
+        }
+        return state[event];
+    };
 
     // Subscribe helper method
     const subscribe = <T extends StoreKey>(
@@ -56,25 +52,28 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
         callback: Callback<T>
     ) => {
         // Have we seen this event before? If not, add it
-        if (!callbacks.hasOwnProperty(event)) {
-            callbacks[event as string] = {};
+        if (!classComponentCallbacks.has(event as string)) {
+            classComponentCallbacks.set(event as string, new Map());
         }
 
         // Register the event callback for the subscriber
-        callbacks[event as string][subscriber] = callback;
+        (classComponentCallbacks.get(event as string) as Map<string, any>).set(
+            subscriber,
+            callback
+        );
     };
 
     const unsubscribe = <T extends StoreKey>(subscriber: string, event?: T) => {
-        if(event) {
-            delete callbacks[event as string][subscriber];
+        if (event) {
+            //delete classComponentCallbacks[event as string][subscriber];
+            (classComponentCallbacks.get(event as string) as Map<
+                string,
+                any
+            >).delete(subscriber);
             return;
         }
 
-        // Loop through all events in the callback root object
-        Object.getOwnPropertyNames(callbacks).forEach(event => {
-            // And delete the subscriber property (if the subscriber doesn't exist on the event, this is a no-op)
-            delete callbacks[event][subscriber];
-        });
+        classComponentCallbacks.forEach(k => k.delete(subscriber));
     };
 
     function update<T extends StoreKey>(
@@ -93,29 +92,46 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
         }
 
         state[event] = newValue as IStore[T];
+
+        functionComponentCallbacks.forEach(subscriber => {
+            if (subscriber.events.has(event as string)) {
+                subscriber.callback();
+            }
+        });
+
         // If no one is listening, exit the method here
-        if (!callbacks.hasOwnProperty(event)) {
+        if (!classComponentCallbacks.has(event as string)) {
             return;
         }
 
         // Loop through every subscriber registered for the event and
         // invoke the their callbacks with the new value
-        Object.getOwnPropertyNames(callbacks[event as string]).forEach(
-            subscriber => {
-                callbacks[event as string][subscriber](newValue);
-            }
-        );
+
+        (classComponentCallbacks.get(event as string) as Map<
+            string,
+            Callback<T>
+        >).forEach(callback => {
+            callback(newValue as IStore[T]);
+        });
     }
 
-    const contexts: string[] = [];
+    const classComponentContexts: Stack<string> = new Stack();
+    const functionalComponentContexts: Stack<string> = new Stack();
+    let renderingFunctionalComponent: boolean = false;
+    let inConstructor: boolean = false;
 
     return {
         get,
         update,
         subscribe<T extends StoreKey>(event: T, callback: Callback<T>) {
+            if (inConstructor) {
+                throw Error(
+                    "Do not use subscribe() in constructor, use componentDidMount()"
+                );
+            }
             // If any ambient context exists, use that, otherwise generate a random name to use for setting up the subscription
-            const name = contexts.length
-                ? contexts[contexts.length - 1]
+            const name = classComponentContexts.any()
+                ? classComponentContexts.peek()
                 : generateName();
             subscribe(event, name, callback);
             return () => unsubscribe(name, event);
@@ -147,16 +163,16 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
                     // before invoking the parent constructor
                     super(
                         (() => {
-                            contexts.push(generateName());
+                            inConstructor = true;
                             return props;
                         })()
                     );
-                    // Should potentially change this and forbid calls to subscribe
-                    // in constructor, because this is really dumb
-                    this.name = contexts.pop() as string;
+                    this.name = generateName();
+                    inConstructor = false;
                 }
 
                 render() {
+                    renderingFunctionalComponent = false;
                     return super.render();
                 }
 
@@ -165,9 +181,9 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
                         return;
                     }
 
-                    contexts.push(this.name);
+                    classComponentContexts.push(this.name);
                     super.componentDidMount();
-                    contexts.pop();
+                    classComponentContexts.pop();
                 }
 
                 componentWillUnmount() {
@@ -178,34 +194,28 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
                 }
             };
         },
-        connect<P>(
-            Component: React.FunctionComponent<P>,
-            reducer: (state: IStore) => Pick<P, keyof P>
-        ) {
+        connect<P>(Component: React.FunctionComponent<P>) {
             return class extends React.Component<P, P> {
-                public name: string;
+                public name: string = generateName();
+
                 constructor(props: P) {
                     super(props);
-                    this.state = reducer({ ...props, ...state });
-                }
-                render() {
-                    const { props, state } = this;
-                    const combined = { ...props, ...state };
-                    return <Component {...combined} />;
+                    functionComponentCallbacks.set(this.name, {
+                        callback: () => this.forceUpdate(),
+                        events: new Set()
+                    });
                 }
 
-                componentWillMount() {
-                    this.name = generateName();
-                    const events: string[] = eventsFromReducer(reducer);
-                    events.forEach(event =>
-                        subscribe(event as keyof IStore, this.name, () => {
-                            this.setState(reducer(state));
-                        })
-                    );
+                render() {
+                    renderingFunctionalComponent = true;
+                    functionalComponentContexts.push(this.name);
+                    const renderedComponent = Component(this.props);
+                    functionalComponentContexts.pop();
+                    return renderedComponent;
                 }
 
                 componentWillUnmount() {
-                    unsubscribe(name);
+                    functionComponentCallbacks.delete(this.name);
                 }
             };
         }
