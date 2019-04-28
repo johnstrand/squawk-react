@@ -164,6 +164,7 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
                     super(
                         (() => {
                             inConstructor = true;
+                            renderingFunctionalComponent = false;
                             return props;
                         })()
                     );
@@ -180,7 +181,7 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
                     if (!super.componentDidMount) {
                         return;
                     }
-
+                    renderingFunctionalComponent = false;
                     classComponentContexts.push(this.name);
                     super.componentDidMount();
                     classComponentContexts.pop();
