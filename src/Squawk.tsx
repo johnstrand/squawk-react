@@ -181,10 +181,15 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
                     componentWillUnmount() {
                         const unsubscribers = classComponentTracker.get(this);
                         if (!unsubscribers) {
+                            console.warn(
+                                "Component unmounted with any subscribers, remove unnecessary squawk()?"
+                            );
+                            console.trace();
                             return;
                         }
 
                         unsubscribers.forEach(unsubscribe => unsubscribe());
+                        classComponentTracker.delete(this);
                     }
                 };
             } else {
