@@ -30,7 +30,7 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
 
     // Tracker for function components, structure is [event][components]
     const functionComponentTracker: Map<
-        string,
+        StoreKey,
         Set<React.Component>
     > = new Map();
 
@@ -42,7 +42,7 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
 
     // Tracker for subscriptions, structure is [event][ID][callback]
     const subscriptions: Map<
-        string,
+        StoreKey,
         Map<string, (value: any) => any>
     > = new Map();
 
@@ -58,11 +58,11 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
             // in the case of class components, just return the value
             if (activeComponent.isFunction) {
                 const trackedComponents =
-                    functionComponentTracker.get(event as string) ||
+                    functionComponentTracker.get(event) ||
                     new Set<React.Component>();
 
                 functionComponentTracker.set(
-                    event as string,
+                    event,
                     trackedComponents.add(activeComponent)
                 );
             }
@@ -90,9 +90,7 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
         state[event] = newValue as IStore[T];
 
         // Are there any function components interested in the current event?
-        const trackedFunctionComponents = functionComponentTracker.get(
-            event as string
-        );
+        const trackedFunctionComponents = functionComponentTracker.get(event);
 
         if (trackedFunctionComponents) {
             trackedFunctionComponents.forEach(
@@ -101,7 +99,7 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
         }
 
         // Are there any subscribers to the current event?
-        const subscriptionTrackers = subscriptions.get(event as string);
+        const subscriptionTrackers = subscriptions.get(event);
 
         if (subscriptionTrackers) {
             subscriptionTrackers.forEach(callback => callback(newValue));
@@ -135,9 +133,7 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
             const id = generateId();
 
             const unsubscribe = () => {
-                const eventSubscribersToRemove = subscriptions.get(
-                    event as string
-                );
+                const eventSubscribersToRemove = subscriptions.get(event);
                 if (!eventSubscribersToRemove) {
                     return;
                 }
@@ -161,13 +157,10 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
             }
 
             const eventSubscribers =
-                subscriptions.get(event as string) ||
+                subscriptions.get(event) ||
                 new Map<string, (value: any) => any>();
 
-            subscriptions.set(
-                event as string,
-                eventSubscribers.set(id, callback)
-            );
+            subscriptions.set(event, eventSubscribers.set(id, callback));
 
             return unsubscribe;
         },
