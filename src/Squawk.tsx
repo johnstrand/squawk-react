@@ -46,14 +46,13 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
                 TrackedComponent;
 
             if (activeComponent.isFunction) {
-                let set = functionComponentTracker.get(event as string);
-                if (!set) {
-                    set = new Set<React.Component>();
-                }
+                const trackedComponents =
+                    functionComponentTracker.get(event as string) ||
+                    new Set<React.Component>();
 
                 functionComponentTracker.set(
                     event as string,
-                    set.add(activeComponent)
+                    trackedComponents.add(activeComponent)
                 );
             }
         }
