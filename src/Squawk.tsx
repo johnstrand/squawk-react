@@ -1,12 +1,18 @@
 import * as React from "react";
 import { Stack } from "./Stack";
 
+// Helper type to filter out all state props with the type never,
+// so that they don't appear in places we don't want them (mostly get)
 type NotNever<T> = Pick<
     T,
     ({ [P in keyof T]: T[P] extends never ? never : P })[keyof T]
 >;
 
+/** Creates a store of the specified type, where the props of IStore will become
+ * tracked values of their respective types
+ */
 export function createStore<IStore>(initialState: NotNever<IStore>) {
+    // IDs are used to track subscriptions
     const generateId = (): string =>
         Math.random()
             .toString(36)
@@ -14,7 +20,9 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
 
     // Helper types to make things less verbose
     type StoreKey = keyof IStore;
-    type Reducer<T extends StoreKey> = (value: IStore[T]) => Exclude<IStore[T], undefined>;
+    type Reducer<T extends StoreKey> = (
+        value: IStore[T]
+    ) => Exclude<IStore[T], undefined>;
     type TrackedComponent = { isFunction: boolean };
 
     // Set initial state, could possibly use JSON.stringify/parse to break references
@@ -41,12 +49,17 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
     // Returns the value of specified event
     // If called from with a rendering function component, will also set up a subscription
     const get = <T extends StoreKey>(event: T) => {
+        // Is get() called while rendering?
         if (isRendering) {
-            const activeComponent = components.peek() as React.Component &
+            const activeComponent = componentHierarchy.peek() as React.Component &
                 TrackedComponent;
 
+            // If the component is a function component, set up a subscriptions
+            // in the case of class components, just return the value
             if (activeComponent.isFunction) {
-                const trackedComponents = functionComponentTracker.get(event as string) || new Set<React.Component>();
+                const trackedComponents =
+                    functionComponentTracker.get(event as string) ||
+                    new Set<React.Component>();
 
                 functionComponentTracker.set(
                     event as string,
@@ -73,18 +86,21 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
             return;
         }
 
+        // Store the updated value in the state
         state[event] = newValue as IStore[T];
 
+        // Are there any function components interested in the current event?
         const trackedFunctionComponents = functionComponentTracker.get(
             event as string
         );
 
         if (trackedFunctionComponents) {
-            trackedFunctionComponents.forEach(component =>
-                component.forceUpdate()
+            trackedFunctionComponents.forEach(
+                component => component.forceUpdate() // Make the component rerender
             );
         }
 
+        // Are there any subscribers to the current event?
         const subscriptionTrackers = subscriptions.get(event as string);
 
         if (subscriptionTrackers) {
@@ -92,15 +108,16 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
         }
     }
 
-    const components: Stack<React.Component> = new Stack();
+    /** Tracks the component currently being rendered (or waiting to be rendered) */
+    const componentHierarchy: Stack<React.Component> = new Stack();
     let isRendering: number = 0;
 
     // extends any is there to stop the transpiler from thinking that <T> is an element
     const renderScope = <T extends any>($this: any, scope: () => T) => {
         isRendering++;
-        components.push($this);
+        componentHierarchy.push($this);
         const rendered = scope();
-        components.pop();
+        componentHierarchy.pop();
         isRendering--;
         return rendered;
     };
@@ -128,8 +145,8 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
                 eventSubscribersToRemove.delete(id);
             };
 
-            if (components.any()) {
-                const currentComponent = components.peek() as React.Component &
+            if (componentHierarchy.any()) {
+                const currentComponent = componentHierarchy.peek() as React.Component &
                     TrackedComponent;
                 if (currentComponent.isFunction) {
                     throw Error(
@@ -170,9 +187,9 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
                         if (!super.componentDidMount) {
                             return;
                         }
-                        components.push(this);
+                        componentHierarchy.push(this);
                         super.componentDidMount();
-                        components.pop();
+                        componentHierarchy.pop();
                     }
 
                     componentWillUnmount() {
