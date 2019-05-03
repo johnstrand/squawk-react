@@ -14,7 +14,7 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
 
     // Helper types to make things less verbose
     type StoreKey = keyof IStore;
-    type Reducer<T extends StoreKey> = (value: IStore[T]) => IStore[T];
+    type Reducer<T extends StoreKey> = (value: IStore[T]) => Exclude<IStore[T], undefined>;
     type TrackedComponent = { isFunction: boolean };
 
     // Set initial state, could possibly use JSON.stringify/parse to break references
@@ -46,9 +46,7 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
                 TrackedComponent;
 
             if (activeComponent.isFunction) {
-                const trackedComponents =
-                    functionComponentTracker.get(event as string) ||
-                    new Set<React.Component>();
+                const trackedComponents = functionComponentTracker.get(event as string) || new Set<React.Component>();
 
                 functionComponentTracker.set(
                     event as string,
@@ -112,7 +110,7 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
         update,
         subscribe<T extends StoreKey>(
             event: T,
-            callback: (value: IStore[T]) => any
+            callback: (value: Exclude<IStore[T], undefined>) => any
         ) {
             if (isRendering) {
                 throw Error("Do not call subscribe inside a rendering call");
