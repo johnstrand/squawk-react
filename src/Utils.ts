@@ -24,3 +24,28 @@ export class Stack<T> {
         return item;
     }
 }
+
+export class RenderDepth {
+    private _depth: number = 0;
+    private _suspended: boolean = false;
+
+    public rendering(): boolean {
+        return !this._suspended && this._depth > 0;
+    }
+
+    public increment(): number {
+        return this._depth++;
+    }
+
+    public decrement(): number {
+        return this._depth--;
+    }
+
+    public suspend(): void {
+        this._suspended = true;
+    }
+
+    public resume(): void {
+        this._suspended = false;
+    }
+}
