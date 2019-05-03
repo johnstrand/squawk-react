@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Stack } from "./Stack";
+import { Stack } from "./Utils";
 
 // Helper type to filter out all state props with the type never,
 // so that they don't appear in places we don't want them (mostly get)
