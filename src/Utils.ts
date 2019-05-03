@@ -33,11 +33,11 @@ export class RenderDepth {
         return !this._suspended && this._depth > 0;
     }
 
-    public increment(): number {
+    public push(): number {
         return this._depth++;
     }
 
-    public decrement(): number {
+    public pop(): number {
         return this._depth--;
     }
 

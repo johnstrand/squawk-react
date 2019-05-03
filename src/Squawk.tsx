@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Stack } from "./Utils";
+import { Stack, RenderDepth } from "./Utils";
 
 // Helper type to filter out all state props with the type never,
 // so that they don't appear in places we don't want them (mostly get)
@@ -50,7 +50,7 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
     // If called from with a rendering function component, will also set up a subscription
     const get = <T extends StoreKey>(event: T) => {
         // Is get() called while rendering?
-        if (isRendering) {
+        if (renderTracker.rendering()) {
             const activeComponent = componentHierarchy.peek() as React.Component &
                 TrackedComponent;
 
@@ -110,15 +110,15 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
 
     /** Tracks the component currently being rendered (or waiting to be rendered) */
     const componentHierarchy: Stack<React.Component> = new Stack();
-    let isRendering: number = 0;
+    const renderTracker: RenderDepth = new RenderDepth();
 
     // extends any is there to stop the transpiler from thinking that <T> is an element
     const renderScope = <T extends any>($this: any, scope: () => T) => {
-        isRendering++;
+        renderTracker.push();
         componentHierarchy.push($this);
         const rendered = scope();
         componentHierarchy.pop();
-        isRendering--;
+        renderTracker.pop();
         return rendered;
     };
 
@@ -129,7 +129,7 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
             event: T,
             callback: (value: Exclude<IStore[T], undefined>) => any
         ) {
-            if (isRendering) {
+            if (renderTracker.rendering()) {
                 throw Error("Do not call subscribe inside a rendering call");
             }
             const id = generateId();
@@ -188,7 +188,9 @@ export function createStore<IStore>(initialState: NotNever<IStore>) {
                             return;
                         }
                         componentHierarchy.push(this);
+                        renderTracker.suspend();
                         super.componentDidMount();
+                        renderTracker.resume();
                         componentHierarchy.pop();
                     }
 
