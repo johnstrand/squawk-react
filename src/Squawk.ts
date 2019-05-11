@@ -41,6 +41,11 @@ const createStore = <IStore>(initial: IStore) => {
             typeof reducerOrValue === "function"
                 ? reducerOrValue(initial[context])
                 : reducerOrValue;
+        
+        if(initial[context] === newValue) {
+            return;
+        }
+
         initial[context] = newValue;
         const contextSubscribers = subscribers.get(context);
         if (contextSubscribers) {
