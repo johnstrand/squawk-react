@@ -13,7 +13,7 @@ Using this starts by creating a store:
 ```typescript
 function createStore<T>(initalState: T)
 
-export const { get, subscribe, update } = createStore<IAppState>({ /* ... */ })
+export const { get, subscribe, update, useSquawk } = createStore<IAppState>({ /* ... */ })
 ```
 
 The type T describes the root object of the store, and the argument is the initial state. 
@@ -62,7 +62,7 @@ Updates the event value via a reducer, or via a direct value. The reducer receiv
 
 The value is only passed on to the subscribers if it has changed (or is undefined), so in the case of reference types, make sure to create a new object rather than mutating the existing one.
 
-## squawk
+## useSquawk
 
 ```typescript
 useSquawk(event)
