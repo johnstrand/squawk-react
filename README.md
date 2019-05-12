@@ -55,9 +55,11 @@ This is used for global service classes, and for class-based components. (Always
 ## update
 
 ```typescript
+update(reducer)
 update(event, reducer)
 update(event, value)
 
+update(state => { myEvent: state.myEvent + 1 });
 update("myEvent", value => value + 1);
 update("myEvent", value);
 ```
