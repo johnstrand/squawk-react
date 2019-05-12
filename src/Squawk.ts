@@ -30,6 +30,28 @@ const createStore = <IStore>(initial: IStore) => {
         };
     };
 
+    /** Internal update method */
+    const internalUpdate = <TContext extends StoreKey>(
+        context: TContext,
+        value: any
+    ) => {
+        // If value is undefined, or has changed, proceed with the update
+        if(value !== undefined && value === initial[context]) {
+            return;
+        }
+
+        initial[context] = value;
+        
+        const contextSubscribers = subscribers.get(context);
+        if (contextSubscribers) {
+            contextSubscribers.forEach(callback => callback(value));
+        }
+    };
+
+    /** Update multiple values */
+    function update<TContext extends StoreKey>(
+        reducer: (store: IStore) => Pick<IStore, TContext>
+    ): void;
     /** Direct update (without reducer) */
     function update<TContext extends StoreKey>(
         context: TContext,
@@ -42,25 +64,24 @@ const createStore = <IStore>(initial: IStore) => {
     ): void;
     /** Implementation */
     function update<TContext extends StoreKey>(
-        context: TContext,
-        reducerOrValue: any
+        contextOrReducer: any,
+        reducerOrValue?: any
     ): void {
-        const newValue =
-            typeof reducerOrValue === "function"
-                ? reducerOrValue(initial[context])
-                : reducerOrValue;
-        
-        /** Return if the new value isn't undefined, and the current value is identical to the existing value */
-        if(newValue !== undefined && initial[context] === newValue) {
-            return;
-        }
+        if (typeof contextOrReducer === "function") {
+            const newValues = (contextOrReducer as (
+                store: IStore
+            ) => Pick<IStore, TContext>)(initial);
 
-        initial[context] = newValue;
+            Object.getOwnPropertyNames(newValues).forEach(prop => {
+                internalUpdate(prop as StoreKey, newValues[prop as TContext]);
+            });
+        } else {
+            const newValue =
+                typeof reducerOrValue === "function"
+                    ? reducerOrValue(initial[contextOrReducer as TContext])
+                    : reducerOrValue;
 
-        /** Find the subscribers mapped to the context */
-        const contextSubscribers = subscribers.get(context);
-        if (contextSubscribers) {
-            contextSubscribers.forEach(callback => callback(newValue));
+            internalUpdate(contextOrReducer, newValue);
         }
     }
 
@@ -78,17 +99,18 @@ const createStore = <IStore>(initial: IStore) => {
         useSquawk<TContext extends StoreKey>(
             context: TContext
         ): [IStore[TContext], (value: IStore[TContext]) => any] {
-            const [value, setValue] = useState<IStore[TContext]>(
+            const [stateValue, setStateValue] = useState<IStore[TContext]>(
                 initial[context]
             );
 
             /** Setup useEffect to handle unsubscribe when the component unmounts */
-            useEffect(() => 
-                internalSubscribe(context, value => setValue(value)));
+            useEffect(() =>
+                internalSubscribe(context, value => setStateValue(value))
+            );
 
             /** Return value and update function */
             return [
-                value as IStore[TContext],
+                stateValue as IStore[TContext],
                 (value: IStore[TContext]) => update(context, value)
             ];
         }
