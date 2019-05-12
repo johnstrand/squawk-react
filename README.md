@@ -1,6 +1,10 @@
 # squawk-react
-[![npm](https://img.shields.io/npm/v/squawk-react.svg)](https://www.npmjs.com/package/squawk-react)
+![npm](https://img.shields.io/npm/v/squawk-react.svg?label=Latest%20stable)
+![npm (tag)](https://img.shields.io/npm/v/squawk-react/beta.svg?label=Latest%20beta)
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+![npm bundle size](https://img.shields.io/bundlephobia/minzip/squawk-react.svg)
 
 A simple support library for managing global state in React applications.
 
