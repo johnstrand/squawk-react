@@ -11,6 +11,9 @@ A simple support library for managing global state in React applications.
 Changes in 3.0:
 * Squawk is now based on React Hooks
 * subscribe now returns an unsubscribe method, rather than a component name
+* Significant rewrite of entire architecture
+
+* TODO: Explain how this works, in detail
 
 Using this starts by creating a store:
 
@@ -56,28 +59,22 @@ This is used for global service classes, and for class-based components. (Always
 
 ```typescript
 update(reducer)
-update(event, reducer)
-update(event, value)
 
 update(state => { myEvent: state.myEvent + 1 });
-update("myEvent", value => value + 1);
-update("myEvent", value);
 ```
 
-Updates the event value via a reducer, or via a direct value. The reducer receives the current value of the event and is expected to return the new value.
-
-The value is only passed on to the subscribers if it has changed (or is undefined), so in the case of reference types, make sure to create a new object rather than mutating the existing one.
+Updates the event value via a reducer.
 
 ## useSquawk
 
 ```typescript
 useSquawk(event)
 
-const [value, updateValue] = useSquawk("myEvent")
+const [state, dispatch] = useSquawk(globalState => { value: globalState.value });
 /*
 ..
 */
-</*...*/ onSomeEvent=>{() => updateValue(value + 1)}
+</*...*/ onSomeEvent=>{() => dispatch({ value: state.value + 1 })} />
 ```
 
 Sets up a hook for the specified context, and returns the current value and an update method. This works like useState, but is hooked into the global state
