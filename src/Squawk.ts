@@ -1,6 +1,6 @@
 import { useReducer, useEffect } from "react";
 
-export default function createStore<TStore>(initial: TStore) {
+export default function createStore<TStore>(globalState: TStore) {
     /** Type alias for the keys of TStore */
     type StoreKey = keyof TStore;
     /** Helper type for nested Pick<> types */
@@ -12,21 +12,11 @@ export default function createStore<TStore>(initial: TStore) {
     /** Helper method to generate random string */
     const getId = () => Math.random().toString(36);
 
-    /** Helper method to inline object mutation */
-    const mutate = <T>(obj: T, mutation: () => any) => {
-        mutation();
-        return obj;
-    };
-
     /** Helper method to produce unique union */
     const union = (...arrays: string[][]) => {
-        return Object.keys(
-            arrays.reduce(
-                (acc: { [key: string]: number }, cur) =>
-                    mutate(acc, () => cur.forEach(c => (acc[c] = 1))),
-                {}
-            )
-        );
+        const items = new Set<string>();
+        arrays.forEach(array => array.forEach(item => items.add(item)));
+        return Array.from(items);
     };
 
     /** Map that links individual keys in TStore to the subscriber IDs */
@@ -48,14 +38,14 @@ export default function createStore<TStore>(initial: TStore) {
             .map(context => Array.from(subscribers.get(context)!));
 
         /** Merge updated values with global state */
-        initial = { ...initial, ...value };
+        globalState = { ...globalState, ...value };
 
         /** Get unique ids and invoke callbacks for each */
         union(...ids).forEach(id => {
             if (!subscriberCallbacks.has(id)) {
                 return;
             }
-            subscriberCallbacks.get(id)!(initial);
+            subscriberCallbacks.get(id)!(globalState);
         });
     };
 
@@ -84,7 +74,7 @@ export default function createStore<TStore>(initial: TStore) {
     return {
         /** Returns a specific named value from the global state */
         get<TContext extends StoreKey>(context: TContext): TStore[TContext] {
-            return initial[context];
+            return globalState[context];
         },
         /** Sets up a subscription for a single global state context */
         subscribe<TContext extends StoreKey>(
@@ -99,7 +89,7 @@ export default function createStore<TStore>(initial: TStore) {
         update<TContext extends StoreKey>(
             reducer: (value: TStore) => Pick<TStore, TContext>
         ): void {
-            internalUpdate(reducer(initial));
+            internalUpdate(reducer(globalState));
         },
         /** Use the squawk hook. The local state will be whatever the reducer returns. The method returns the current local state, and a method to update the global state */
         useSquawk<TContext extends StoreKey>(
@@ -125,20 +115,23 @@ export default function createStore<TStore>(initial: TStore) {
             });
 
             /** Derive local state from global state */
-            const localValue = localReducer(initial);
+            const initialLocalState = localReducer(globalState);
 
             /** Initialize useReducer with the local state */
-            const [value, dispatcher] = useReducer(reducer, localValue);
+            const [localState, localDispatcher] = useReducer(
+                reducer,
+                initialLocalState
+            );
 
             useEffect(() =>
                 /** Set up subscriptions for the contexts in the local state */
-                internalSubscribe(Object.keys(localValue), value =>
+                internalSubscribe(Object.keys(initialLocalState), value =>
                     /** value will be the global state, so run it through the local reducer before dispatching it locally */
-                    dispatcher(localReducer(value))
+                    localDispatcher(localReducer(value))
                 )
             );
 
-            return [value, state => internalUpdate(state)];
+            return [localState, state => internalUpdate(state)];
         }
     };
 }
