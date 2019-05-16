@@ -3,6 +3,11 @@ import { useReducer, useEffect } from "react";
 export default function createStore<TStore>(initial: TStore) {
     /** Type alias for the keys of TStore */
     type StoreKey = keyof TStore;
+    /** Helper type for nested Pick<> types */
+    type NestedPick<T, U extends keyof T, V extends keyof Pick<T, U>> = Pick<
+        Pick<T, U>,
+        V
+    >;
 
     /** Helper method to generate random string */
     const getId = () => Math.random().toString(36);
@@ -78,28 +83,41 @@ export default function createStore<TStore>(initial: TStore) {
 
     return {
         /** Returns a specific named value from the global state */
-        get<T extends StoreKey>(context: T): TStore[T] {
+        get<TContext extends StoreKey>(context: TContext): TStore[TContext] {
             return initial[context];
         },
         /** Sets up a subscription for a single global state context */
-        subscribe<T extends StoreKey>(
-            context: T,
-            callback: (value: TStore[T]) => any
+        subscribe<TContext extends StoreKey>(
+            context: TContext,
+            callback: (value: TStore[TContext]) => any
         ): () => void {
             return internalSubscribe([context as string], (state: TStore) =>
                 callback(state[context])
             );
         },
         /** Update 1 or more global state contexts. The callback receives the global state and what contexts are updated are determined by what it returns */
-        update<T extends StoreKey>(
-            reducer: (value: TStore) => Pick<TStore, T>
+        update<TContext extends StoreKey>(
+            reducer: (value: TStore) => Pick<TStore, TContext>
         ): void {
             internalUpdate(reducer(initial));
         },
-        /** Use the squawk hook. The local state will be whatever the reducer returns */
-        useSquawk<T extends StoreKey>(
-            localReducer: (value: TStore) => Pick<TStore, T>
-        ): [Pick<TStore, T>, (state: Pick<TStore, T>) => void] {
+        /** Use the squawk hook. The local state will be whatever the reducer returns. The method returns the current local state, and a method to update the global state */
+        useSquawk<TContext extends StoreKey>(
+            localReducer: (value: TStore) => Pick<TStore, TContext>
+        ): [
+            Pick<TStore, TContext>,
+            <TUpdate extends keyof Pick<TStore, TContext>>(
+                state: NestedPick<TStore, TContext, TUpdate>
+            ) => void
+        ] {
+            /* The types defined above are messy, but with good reason. Basically, we're dealing with three sets:
+             * The global state
+             * The local state (which is a subset of the global state)
+             * The update state (which in turn is a subset of the local state)
+             * So the cycle works like this:
+             * Global state -> Local state -> Component -> Update -> Updated merged into global state -> Subscribers notified -> Back to the beginning
+             */
+
             /** Simple merging reducer, as we will only dispatch partial states */
             const reducer = (state: any, action: any) => ({
                 ...state,
@@ -120,7 +138,7 @@ export default function createStore<TStore>(initial: TStore) {
                 )
             );
 
-            return [value, (state: Pick<TStore, T>) => internalUpdate(state)];
+            return [value, state => internalUpdate(state)];
         }
     };
 }
