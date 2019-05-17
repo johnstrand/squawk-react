@@ -3,6 +3,8 @@ import { useReducer, useEffect } from "react";
 export default function createStore<TStore>(globalState: TStore) {
     /** Type alias for the keys of TStore */
     type StoreKey = keyof TStore;
+    /** Type alias for reducers: (value: T) => any */
+    type Reducer<T = any> = (value: T) => any;
     /** Helper type for nested Pick<> types */
     type NestedPick<T, U extends keyof T, V extends keyof Pick<T, U>> = Pick<
         Pick<T, U>,
@@ -16,10 +18,10 @@ export default function createStore<TStore>(globalState: TStore) {
         return Array.from(items);
     };
 
-    /** Map that links individual keys in TStore to the subscriber IDs */
-    const subscribers = new Map<string, Set<(state: any) => any>>();
+    /** Map that links individual keys in TStore to the reducer callbacks */
+    const subscribers = new Map<string, Set<Reducer>>();
 
-    /** Actual update method, handles resolving subscribers and IDs */
+    /** Actual update method, handles resolving subscribers and reducers */
     const internalUpdate = (value: any) => {
         /** Make sure that value is not null, and that it is an object */
         if (!value || typeof value !== "object") {
@@ -27,7 +29,7 @@ export default function createStore<TStore>(globalState: TStore) {
         }
         /** Get a list of affected contexts from value object */
         const contexts = Object.keys(value);
-        /** Get a (non-unique) list of affected ids */
+        /** Get a (non-unique) list of affected reducers */
         const reducers = contexts
             .filter(context => subscribers.has(context))
             .map(context => Array.from(subscribers.get(context)!));
@@ -35,17 +37,15 @@ export default function createStore<TStore>(globalState: TStore) {
         /** Merge updated values with global state */
         globalState = { ...globalState, ...value };
 
-        /** Get unique ids and invoke callbacks for each */
+        /** Get unique reducers and invoke them */
         union(...reducers).forEach(reducer => {
             reducer(globalState);
         });
     };
 
-    const internalSubscribe = (
-        contexts: string[],
-        reducer: (state: any) => any
-    ) => {
-        /** For each supplied context, set up a context->id mapping (and associated callback) */
+    /** Internal method for setting up and removing subscriptions */
+    const internalSubscribe = (contexts: string[], reducer: Reducer) => {
+        /** For each supplied context, set up a context->[callback] mapping */
         contexts.forEach(context => {
             if (!subscribers.has(context)) {
                 subscribers.set(context, new Set());
@@ -67,7 +67,7 @@ export default function createStore<TStore>(globalState: TStore) {
         /** Sets up a subscription for a single global state context */
         subscribe<TContext extends StoreKey>(
             context: TContext,
-            callback: (value: TStore[TContext]) => any
+            callback: Reducer<TStore[TContext]>
         ): () => void {
             return internalSubscribe([context as string], (state: TStore) =>
                 callback(state[context])
@@ -97,7 +97,7 @@ export default function createStore<TStore>(globalState: TStore) {
              */
 
             /** Simple merging reducer, as we will only dispatch partial states */
-            const reducer = (state: any, action: any) => ({
+            const mergingReducer = (state: any, action: any) => ({
                 ...state,
                 ...action
             });
@@ -107,7 +107,7 @@ export default function createStore<TStore>(globalState: TStore) {
 
             /** Initialize useReducer with the local state */
             const [localState, localDispatcher] = useReducer(
-                reducer,
+                mergingReducer,
                 initialLocalState
             );
 
