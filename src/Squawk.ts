@@ -89,11 +89,11 @@ export default function createStore<TStore>(globalState: TStore) {
             ) => void
         ] {
             /* The types defined above are messy, but with good reason. Basically, we're dealing with three sets:
-             * The global state
-             * The local state (which is a subset of the global state)
-             * The update state (which in turn is a subset of the local state)
-             * So the cycle works like this:
-             * Global state -> Local state -> Component -> Update -> Updated merged into global state -> Subscribers notified -> Back to the beginning
+                * The global state
+                * The local state (which is a subset of the global state)
+                * The update state (which in turn is a subset of the local state)
+               The update state is merged into the global state, which then is used (via the reducer) to
+               updated the local states
              */
 
             /** Simple merging reducer, as we will only dispatch partial states */
