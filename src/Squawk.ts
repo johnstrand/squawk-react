@@ -111,13 +111,23 @@ export default function createStore<TStore>(globalState: TStore) {
                 initialLocalState
             );
 
-            useEffect(() =>
+            /** Maintain a reference to the global state, so that we may check it for changes */
+            const globalRef = globalState;
+
+            useEffect(() => {
                 /** Set up subscriptions for the contexts in the local state */
-                internalSubscribe(Object.keys(initialLocalState), value =>
+                const unsubscribe = internalSubscribe(Object.keys(initialLocalState), value =>
                     /** value will be the global state, so run it through the local reducer before dispatching it locally */
                     localDispatcher(localReducer(value))
                 )
-            );
+
+                /** Has global state changed? If so, immediately invoke the local reducer and dispatcher */
+                if(globalRef !== globalState) {
+                    localDispatcher(localReducer(globalState));
+                }
+
+                return unsubscribe;
+            });
 
             return [localState, state => internalUpdate(state)];
         }
