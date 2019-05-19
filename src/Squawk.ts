@@ -81,20 +81,14 @@ export default function createStore<TStore>(globalState: TStore) {
         },
         /** Use the squawk hook. The local state will be whatever the reducer returns. The method returns the current local state, and a method to update the global state */
         useSquawk<TContext extends StoreKey>(
-            localReducer: (value: TStore) => Pick<TStore, TContext>
-        ): [
-            Pick<TStore, TContext>,
-            <TUpdate extends keyof Pick<TStore, TContext>>(
-                state: NestedPick<TStore, TContext, TUpdate>
-            ) => void
-        ] {
-            /* The types defined above are messy, but with good reason. Basically, we're dealing with three sets:
-                * The global state
-                * The local state (which is a subset of the global state)
-                * The update state (which in turn is a subset of the local state)
-               The update state is merged into the global state, which then is used (via the reducer) to
-               updated the local states
-             */
+            ...contexts: TContext[]
+        ): [Pick<TStore, TContext>, (state: TStore) => void] {
+
+            const localReducer = (state: TStore) => {
+                const result = {} as Pick<TStore, TContext>;
+                contexts.forEach(context => result[context] = state[context]);
+                return result;
+            }
 
             /** Simple merging reducer, as we will only dispatch partial states */
             const mergingReducer = (state: any, action: any) => ({
@@ -111,18 +105,19 @@ export default function createStore<TStore>(globalState: TStore) {
                 initialLocalState
             );
 
-            /** Maintain a reference to the global state, so that we may check it for changes */
             const globalRef = globalState;
 
             useEffect(() => {
                 /** Set up subscriptions for the contexts in the local state */
-                const unsubscribe = internalSubscribe(Object.keys(initialLocalState), value =>
-                    /** value will be the global state, so run it through the local reducer before dispatching it locally */
-                    localDispatcher(localReducer(value))
-                )
+                const unsubscribe = internalSubscribe(
+                    Object.keys(initialLocalState),
+                    value =>
+                        /** value will be the global state, so run it through the local reducer before dispatching it locally */
+                        localDispatcher(localReducer(value))
+                );
 
-                /** Has global state changed? If so, immediately invoke the local reducer and dispatcher */
-                if(globalRef !== globalState) {
+                /** global state has changed while we were setting things up */
+                if (globalRef !== globalState) {
                     localDispatcher(localReducer(globalState));
                 }
 
