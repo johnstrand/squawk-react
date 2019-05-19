@@ -5,11 +5,6 @@ export default function createStore<TStore>(globalState: TStore) {
     type StoreKey = keyof TStore;
     /** Type alias for reducers: (value: T) => any */
     type Reducer<T = any> = (value: T) => any;
-    /** Helper type for nested Pick<> types */
-    type NestedPick<T, U extends keyof T, V extends keyof Pick<T, U>> = Pick<
-        Pick<T, U>,
-        V
-    >;
 
     /** Helper method to produce unique union */
     const union = <T>(...arrays: T[][]) => {
