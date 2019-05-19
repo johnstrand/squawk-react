@@ -77,13 +77,15 @@ export default function createStore<TStore>(globalState: TStore) {
         /** Use the squawk hook. The local state will be whatever the reducer returns. The method returns the current local state, and a method to update the global state */
         useSquawk<TContext extends StoreKey>(
             ...contexts: TContext[]
-        ): [Pick<TStore, TContext>, (state: TStore) => void] {
-
+        ): [
+            Pick<TStore, TContext>,
+            <TUpdate extends keyof TStore>(state: Pick<TStore, TUpdate>) => void
+        ] {
             const localReducer = (state: TStore) => {
                 const result = {} as Pick<TStore, TContext>;
-                contexts.forEach(context => result[context] = state[context]);
+                contexts.forEach(context => (result[context] = state[context]));
                 return result;
-            }
+            };
 
             /** Simple merging reducer, as we will only dispatch partial states */
             const mergingReducer = (state: any, action: any) => ({
