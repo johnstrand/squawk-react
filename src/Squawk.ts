@@ -81,10 +81,12 @@ export default function createStore<TStore>(globalState: TStore) {
             Pick<TStore, TContext>,
             <TUpdate extends keyof TStore>(state: Pick<TStore, TUpdate>) => void
         ] {
+            /** Local reducer simply copies the contexts from the state */
             const localReducer = (state: TStore) => {
-                const result = {} as Pick<TStore, TContext>;
-                contexts.forEach(context => (result[context] = state[context]));
-                return result;
+                return contexts.reduce(
+                    (acc, cur) => ({ ...acc, ...{ [cur]: state[cur] } }),
+                    {}
+                ) as Pick<TStore, TContext>;
             };
 
             /** Simple merging reducer, as we will only dispatch partial states */
