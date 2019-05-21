@@ -68,7 +68,7 @@ const [state, dispatch] = useSquawk("myEvent");
 /*
 ..
 */
-</*...*/ onSomeEvent=>{() => dispatch({ value: state.myEvent + 1 })} />
+</*...*/ onSomeEvent=>{() => dispatch({ myEvent: state.myEvent + 1 })} />
 ```
 
 Sets up a hook for the specified context, and returns the current value and an update method. This works like useState, but is hooked into the global state
