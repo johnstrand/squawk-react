@@ -15,6 +15,7 @@ export default function createStore<TStore>(globalState: TStore) {
 
     /** Map that links individual keys in TStore to the reducer callbacks */
     const subscribers = new Map<string, Set<Reducer>>();
+    const subscriberCache = new Map();
 
     /** Actual update method, handles resolving subscribers and reducers */
     const internalUpdate = (value: any) => {
@@ -104,24 +105,18 @@ export default function createStore<TStore>(globalState: TStore) {
                 initialLocalState
             );
 
-            const globalRef = globalState;
+            /** Set up subscriptions for the contexts in the local state */
+            const unsubscribe = subscriberCache.has(localDispatcher)
+                ? subscriberCache.get(localDispatcher)
+                : internalSubscribe(Object.keys(initialLocalState), value =>
+                      /** value will be the global state, so run it through the local reducer before dispatching it locally */
+                      localDispatcher(localReducer(value))
+                  );
 
-            useEffect(() => {
-                /** Set up subscriptions for the contexts in the local state */
-                const unsubscribe = internalSubscribe(
-                    Object.keys(initialLocalState),
-                    value =>
-                        /** value will be the global state, so run it through the local reducer before dispatching it locally */
-                        localDispatcher(localReducer(value))
-                );
-
-                /** global state has changed while we were setting things up */
-                if (globalRef !== globalState) {
-                    localDispatcher(localReducer(globalState));
-                }
-
-                return unsubscribe;
-            });
+            useEffect(() => () => {
+                unsubscribe();
+                subscriberCache.delete(localDispatcher);
+            }, [unsubscribe]);
 
             return [localState, state => internalUpdate(state)];
         }
