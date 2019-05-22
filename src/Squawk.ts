@@ -54,6 +54,20 @@ export default function createStore<TStore>(globalState: TStore) {
             subscribers.forEach(s => s.delete(reducer));
         };
     };
+    
+    /** Update variants */
+    function update<TContext extends StoreKey>(reducer: (value: TStore) => Pick<TStore, TContext>): void;
+    function update<TContext extends StoreKey>(key: TContext, value: TStore[TContext]): void;
+    function update<TContext extends StoreKey>(value: Pick<TStore, TContext>): void;
+    function update(keyOrReducerOrValue: any, optionalValue?: any): void {
+        if(typeof keyOrReducerOrValue === "function") {
+            internalUpdate(keyOrReducerOrValue(globalState));
+        } else if(typeof keyOrReducerOrValue === "string") {
+            internalUpdate({ [keyOrReducerOrValue]: optionalValue });
+        } else {
+            internalUpdate(keyOrReducerOrValue);
+        }
+    }
 
     return {
         /** Returns a specific named value from the global state */
@@ -70,11 +84,7 @@ export default function createStore<TStore>(globalState: TStore) {
             );
         },
         /** Update 1 or more global state contexts. The callback receives the global state and what contexts are updated are determined by what it returns */
-        update<TContext extends StoreKey>(
-            reducer: (value: TStore) => Pick<TStore, TContext>
-        ): void {
-            internalUpdate(reducer(globalState));
-        },
+        update,
         /** Use the squawk hook. The local state will be whatever the reducer returns. The method returns the current local state, and a method to update the global state */
         useSquawk<TContext extends StoreKey>(
             ...contexts: TContext[]
