@@ -14,7 +14,15 @@ A simple support library for managing global state in React applications, with h
 ```typescript
 function createStore<T, EventProps extends string = never>(globalState: T)
 
-export const { event, get, onEvent, subscribe, update, useEvent, useSquawk } = createStore<IAppState, "updateValue" | "valueUpdated">({ /* ... */ })
+export const { 
+    event,
+    get,
+    onEvent,
+    subscribe,
+    update,
+    useEvent,
+    useSquawk
+} = createStore<IAppState, "updateValue" | "valueUpdated">({ /* ... */ })
 ```
 
 The type T describes the root object of the store, and the argument is the initial state. 
@@ -27,11 +35,13 @@ The function returns an object with the following methods:
 
 ```typescript
 get(prop)
+get()
 
 const value = get("myProp");
+const store = get()
 ```
 
-Fetches the current value of the specified state property.
+Fetches the current value of the specified state property, or the entire global state. Be careful with doing modifications, or risk the wrath of the ghost of references past.
 
 ## subscribe
 
