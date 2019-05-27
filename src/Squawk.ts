@@ -89,11 +89,15 @@ export default function createStore<TStore, EventProps extends string = never>(
         }
     }
 
+    function get<TContext extends StoreProps>(context: TContext): TStore[TContext];
+    function get(): TStore;
+    function get<TContext extends StoreProps>(context?: TContext) {
+        return context ? globalState[context] : globalState;
+    }
+
     return {
         /** Returns a specific named value from the global state */
-        get<TContext extends StoreProps>(context: TContext): TStore[TContext] {
-            return globalState[context];
-        },
+        get,
         event<TEvent extends EventProps>(event: TEvent): void {
             internalUpdate({ [event]: undefined });
         },
