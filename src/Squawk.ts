@@ -1,8 +1,10 @@
 import { useReducer, useEffect } from "react";
 
-export default function createStore<TStore>(globalState: TStore) {
-    /** Type alias for the keys of TStore */
-    type StoreKey = keyof TStore;
+export default function createStore<TStore, EventProps extends string = never>(
+    globalState: TStore
+) {
+    type StoreProps = keyof TStore;
+
     /** Type alias for reducers: (value: T) => any */
     type Reducer<T = any> = (value: T) => any;
 
@@ -55,13 +57,54 @@ export default function createStore<TStore>(globalState: TStore) {
         };
     };
 
+    /** Update variants */
+    function update<TContext extends StoreProps>(
+        reducer: (value: TStore) => Pick<TStore, TContext>
+    ): void;
+    function update<TContext extends StoreProps>(
+        key: TContext,
+        value: TStore[TContext]
+    ): void;
+    function update<TContext extends StoreProps>(
+        key: TContext,
+        reducer: (value: TStore[TContext]) => TStore[TContext]
+    ): void;
+    function update<TContext extends StoreProps>(
+        value: Pick<TStore, TContext>
+    ): void;
+    function update(keyOrReducerOrValue: any, optionalValue?: any): void {
+        if (typeof keyOrReducerOrValue === "function") {
+            internalUpdate(keyOrReducerOrValue(globalState));
+        } else if (typeof keyOrReducerOrValue === "string") {
+            internalUpdate({
+                [keyOrReducerOrValue]:
+                    typeof optionalValue === "function"
+                        ? optionalValue(
+                              (globalState as any)[keyOrReducerOrValue]
+                          )
+                        : optionalValue
+            });
+        } else {
+            internalUpdate(keyOrReducerOrValue);
+        }
+    }
+
     return {
         /** Returns a specific named value from the global state */
-        get<TContext extends StoreKey>(context: TContext): TStore[TContext] {
+        get<TContext extends StoreProps>(context: TContext): TStore[TContext] {
             return globalState[context];
         },
+        event<TEvent extends EventProps>(event: TEvent): void {
+            internalUpdate({ [event]: undefined });
+        },
+        onEvent<TEvent extends EventProps>(
+            event: TEvent,
+            callback: () => any
+        ): () => void {
+            return internalSubscribe([event as string], callback);
+        },
         /** Sets up a subscription for a single global state context */
-        subscribe<TContext extends StoreKey>(
+        subscribe<TContext extends StoreProps>(
             context: TContext,
             callback: Reducer<TStore[TContext]>
         ): () => void {
@@ -70,17 +113,19 @@ export default function createStore<TStore>(globalState: TStore) {
             );
         },
         /** Update 1 or more global state contexts. The callback receives the global state and what contexts are updated are determined by what it returns */
-        update<TContext extends StoreKey>(
-            reducer: (value: TStore) => Pick<TStore, TContext>
-        ): void {
-            internalUpdate(reducer(globalState));
+        update,
+        useEvent<TEvent extends EventProps>(
+            event: TEvent,
+            callback: () => any
+        ) {
+            useEffect(() => internalSubscribe([event as string], callback));
         },
         /** Use the squawk hook. The local state will be whatever the reducer returns. The method returns the current local state, and a method to update the global state */
-        useSquawk<TContext extends StoreKey>(
+        useSquawk<TContext extends StoreProps>(
             ...contexts: TContext[]
         ): [
             Pick<TStore, TContext>,
-            <TUpdate extends keyof TStore>(state: Pick<TStore, TUpdate>) => void
+            <TUpdate extends StoreProps>(state: Pick<TStore, TUpdate>) => void
         ] {
             /** Local reducer simply copies the contexts from the state */
             const localReducer = (state: TStore) => {
@@ -113,10 +158,13 @@ export default function createStore<TStore>(globalState: TStore) {
                       localDispatcher(localReducer(value))
                   );
 
-            useEffect(() => () => {
-                unsubscribe();
-                subscriberCache.delete(localDispatcher);
-            }, [unsubscribe]);
+            useEffect(
+                () => () => {
+                    unsubscribe();
+                    subscriberCache.delete(localDispatcher);
+                },
+                [unsubscribe]
+            );
 
             return [localState, state => internalUpdate(state)];
         }
