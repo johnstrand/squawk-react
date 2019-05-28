@@ -80,14 +80,16 @@ Updates one or more property values, by one of four ways. Two variants to handle
 ```typescript
 useSquawk(...props)
 
-const [state, dispatch] = useSquawk("myProp", "myOtherProp");
+const state = useSquawk("myProp", "myOtherProp");
 /*
 ..
 */
-</*...*/ onSomeEvent=>{() => dispatch({ myProp: state.myProp + 1 })} />
+</*...*/ someProp={state.myProp} />
 ```
 
-Sets up a hook for the specified properties, and returns the current value and an update method. This works like useState, but is hooked into the global state
+Sets up a hook for the specified properties, and returns an object with the current values. Also triggers an update whenever one or more properties are updated.
+
+**NOTE: useSquawk previously returned a tuple with a dispatch method. This has been removed in favor of simply using the global update method instead.**
 
 # Events
 Events are much like the props above, except that they don't have a value, only a name. These are basically here to notify the rest of the application that something has happened, without attaching data to it.
