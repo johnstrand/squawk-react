@@ -1,112 +1,125 @@
 # squawk-react
-[![npm](https://img.shields.io/npm/v/squawk-react.svg)](https://www.npmjs.com/package/squawk-react)
+![npm](https://img.shields.io/npm/v/squawk-react.svg?label=Latest%20stable)
+![npm (tag)](https://img.shields.io/npm/v/squawk-react/beta.svg?label=Latest%20beta)
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A simple support library to insert message passing capabilities into React applications.
+![npm bundle size](https://img.shields.io/bundlephobia/minzip/squawk-react.svg)
 
-Note: The architecture is rewritten with squawk-react 2.0
+A simple support library for managing global state in React applications, with hooks! (insert pirate joke here)
 
-Unlike Flux-based implementations, squawk does not handle automatic injection via properties, but instead expects each component to track it's own state (and update it via the global state as needed)
 
-While this duplicates code, it also leads to a more easily understood structure
-
-Using this starts by creating a store:
+# API description
 
 ```typescript
-function createStore<T>(initalState: T)
+function createStore<T, EventProps extends string = never>(globalState: T)
 
-export const { get, subscribe, unsubscribe, update, squawk, createBinder } = createStore<IAppState>({ /* ... */ })
+export const { 
+    event,
+    get,
+    onEvent,
+    subscribe,
+    update,
+    useEvent,
+    useSquawk
+} = createStore<IAppState, "updateValue" | "valueUpdated">({ /* ... */ })
 ```
 
 The type T describes the root object of the store, and the argument is the initial state. 
 
-Any time an event is referenced, it is one of the root properties of T (via keyof T). Squawk also handles events without data, by adding a property of type never to the type T.
+Any time an event is referenced, it is one of the root properties of T (via keyof T). 
 
-The function returns an object with 5 methods:
+The function returns an object with the following methods:
 
 ## get
 
 ```typescript
-get(event)
+get(prop)
+get()
 
-const value = get("myEvent");
+const value = get("myProp");
+const store = get()
 ```
 
-Fetches the current value of the specified event.
+Fetches the current value of the specified state property, or the entire global state. Be careful with doing modifications, or risk the wrath of the ghost of references past.
 
 ## subscribe
 
 ```typescript
-subscribe(event, callback)
+subscribe(prop, callback)
 
-const id = subscribe("myEvent", value => { /* ... */ });
+const unsubMyEvent = subscribe("myProp", value => { /* ... */ });
+/*
+...
+*/
+unsubMyEvent();
 ```
 
-Creates a subscription for the specified event, invoking the callback with the new value whenver the event is invoked. The method returns a random name which can later be used to cancel the subscription. For events without payload, value will have type never and the value undefined.
+Creates a subscription for changes to the the specified state property, invoking the callback with the new value on change. The method returns a function which may later be used to cancel the subscription.
 
-## unsubscribe
-
-```typescript
-unsubscribe(subscriber)
-
-unsubscribe(id);
-```
-
-Removes the specified subscription.
+This is used for global service classes, and for class-based components. (Always remember to clean up your subscriptions when your component unmounts)
 
 ## update
 
 ```typescript
-update(event, reducer)
+update(reducer)
+update(key, value)
+update(key, reducer)
+update(value)
 
-update("myEvent", value => value + 1);
-update("myEventWithoutValue");
+update(state => ({ myProp: state.myProp + 1, myOtherProp: true }));
+update("myProp", 1);
+update("myProp", myProp => myProp + 1);
+update({ myProp: 1, myOtherProp: true });
 ```
 
-Updates the event value via a reducer. The reducer receives the current value of the event and is expected to return the new value. Resist the urge to modify the value, and instead treat it as immutable. For events without value, the update method requires only an event name, and the reducer should be omitted.
+Updates one or more property values, by one of four ways. Two variants to handle when the new value depends on the previous value, and two variaents that will simply overwrite the old value. Two variants that allow for updating more than one property, and two that only allows for updating a single property.
 
-## squawk
+## useSquawk
 
 ```typescript
-squawk(componentConstructor)
+useSquawk(...props)
+
+const state = useSquawk("myProp", "myOtherProp");
+/*
+..
+*/
+</*...*/ someProp={state.myProp} />
 ```
 
-The squawk method creates a HoC that wraps the specified component. It expects a function that receives a subscription function, and returns a component. The subscription method looks like the one above, but does not return a name. It follows the life cycle of the wrapping component, and clears all subscriptions when the component unmounts.
+Sets up a hook for the specified properties, and returns an object with the current values. Also triggers an update whenever one or more properties are updated.
 
-Using the method could look something like this
-```typescript
-export const MyComponent = squawk(subscribe => class extends React.Component {
-    render() {
-        // ...
-    }
+**NOTE: useSquawk previously returned a tuple with a dispatch method. This has been removed in favor of simply using the global update method instead.**
 
-    componentDidMount() {
-        subscribe("myEvent", value => this.setState({ value }));
-    }
-});
-```
+# Events
+Events are much like the props above, except that they don't have a value, only a name. These are basically here to notify the rest of the application that something has happened, without attaching data to it.
 
-## createBinder
+## event (New)
 
 ```typescript
-createBinder(ref, subscriber);
+event(event)
+
+event("myEvent")
 ```
 
-This is a helper method to reduce the amount of boilerplate in cases where the global state has the same name as the local state, and is bound without any modification. Compare to the above squawk example, assume that the state property is also called myEvent, then the code would look like this:
+Dispatches an event for anyone listening
+
+## onEvent (New)
 
 ```typescript
-subscribe("myEvent", myEvent => this.setState({ myEvent }));
+onEvent(event, callback)
+
+onEvent("myEvent", () => { /* ... */ })
 ```
 
-Instead, one could import createBinder and use it as such:
+Invokes a callback when an event occurs. This is the equivalent of subscribe, but separated to make it clear that this is an event and not an updated value
+
+## useEvent (New)
+
 ```typescript
-bind = createBinder(this, subscribe); // subscribe being the subscription method injected in squawk
-// And then later
-componentDidMount() {
-    this.bind("myEvent");
-}
+useEvent(event, callback)
+
+useEvent("myEvent", () => { /* ... */ })
 ```
 
-For this to work, the two properties must have exactly the same name
-
-There is a sample application available at https://johnstrand.github.io/squawk/build/index.html.
+Exactly like onEvent above, except to be used inside functional components

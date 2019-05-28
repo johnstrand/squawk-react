@@ -9,7 +9,8 @@
     "moduleResolution": "node",
     "declaration": true,
     "diagnostics": true,
-    "listEmittedFiles": true
+    "listEmittedFiles": true,
+    "lib": [ "es5", "es6", "dom"]
   },
   "exclude": [
     "node_modules",
