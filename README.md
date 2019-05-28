@@ -1,6 +1,5 @@
 # squawk-react
 ![npm](https://img.shields.io/npm/v/squawk-react.svg?label=Latest%20stable)
-![npm (tag)](https://img.shields.io/npm/v/squawk-react/beta.svg?label=Latest%20beta)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
