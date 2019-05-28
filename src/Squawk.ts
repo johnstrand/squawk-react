@@ -89,7 +89,9 @@ export default function createStore<TStore, EventProps extends string = never>(
         }
     }
 
-    function get<TContext extends StoreProps>(context: TContext): TStore[TContext];
+    function get<TContext extends StoreProps>(
+        context: TContext
+    ): TStore[TContext];
     function get(): TStore;
     function get<TContext extends StoreProps>(context?: TContext) {
         return context ? globalState[context] : globalState;
@@ -127,10 +129,7 @@ export default function createStore<TStore, EventProps extends string = never>(
         /** Use the squawk hook. The local state will be whatever the reducer returns. The method returns the current local state, and a method to update the global state */
         useSquawk<TContext extends StoreProps>(
             ...contexts: TContext[]
-        ): [
-            Pick<TStore, TContext>,
-            <TUpdate extends StoreProps>(state: Pick<TStore, TUpdate>) => void
-        ] {
+        ): Pick<TStore, TContext> {
             /** Local reducer simply copies the contexts from the state */
             const localReducer = (state: TStore) => {
                 return contexts.reduce(
@@ -170,7 +169,7 @@ export default function createStore<TStore, EventProps extends string = never>(
                 [unsubscribe]
             );
 
-            return [localState, state => internalUpdate(state)];
+            return localState;
         }
     };
 }
