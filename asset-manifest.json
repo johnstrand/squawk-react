@@ -1,16 +1,15 @@
 {
   "files": {
-    "main.css": "/squawk-react/static/css/main.986bf13c.chunk.css",
-    "main.js": "/squawk-react/static/js/main.196f31b3.chunk.js",
-    "main.js.map": "/squawk-react/static/js/main.196f31b3.chunk.js.map",
+    "main.css": "/squawk-react/static/css/main.69eda509.chunk.css",
+    "main.js": "/squawk-react/static/js/main.b29952b6.chunk.js",
+    "main.js.map": "/squawk-react/static/js/main.b29952b6.chunk.js.map",
     "runtime~main.js": "/squawk-react/static/js/runtime~main.c49a8709.js",
     "runtime~main.js.map": "/squawk-react/static/js/runtime~main.c49a8709.js.map",
-    "static/js/2.b41502e9.chunk.js": "/squawk-react/static/js/2.b41502e9.chunk.js",
-    "static/js/2.b41502e9.chunk.js.map": "/squawk-react/static/js/2.b41502e9.chunk.js.map",
+    "static/js/2.af2ffffd.chunk.js": "/squawk-react/static/js/2.af2ffffd.chunk.js",
+    "static/js/2.af2ffffd.chunk.js.map": "/squawk-react/static/js/2.af2ffffd.chunk.js.map",
     "index.html": "/squawk-react/index.html",
-    "precache-manifest.039847fac233c70d664e7b1ea510c944.js": "/squawk-react/precache-manifest.039847fac233c70d664e7b1ea510c944.js",
+    "precache-manifest.0782c73a4a2dea19037a3f87b8cab48a.js": "/squawk-react/precache-manifest.0782c73a4a2dea19037a3f87b8cab48a.js",
     "service-worker.js": "/squawk-react/service-worker.js",
-    "static/css/main.986bf13c.chunk.css.map": "/squawk-react/static/css/main.986bf13c.chunk.css.map",
-    "static/media/logo.svg": "/squawk-react/static/media/logo.ee7cd8ed.svg"
+    "static/css/main.69eda509.chunk.css.map": "/squawk-react/static/css/main.69eda509.chunk.css.map"
   }
 }
