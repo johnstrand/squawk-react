@@ -2,17 +2,21 @@
   "name": "squawk-react",
   "version": "0.1.0",
   "private": true,
+  "homepage": "https://johnstrand.github.io/squawk-react/",
   "dependencies": {
     "@types/jest": "24.0.13",
     "@types/node": "12.0.3",
     "@types/react": "16.8.19",
     "@types/react-dom": "16.8.4",
+    "gh-pages": "^2.0.1",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
     "react-scripts": "3.0.1",
     "typescript": "3.4.5"
   },
   "scripts": {
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
