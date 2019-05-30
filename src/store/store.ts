@@ -6,7 +6,7 @@ export interface TodoItem {
     done: boolean;
 }
 
-type Filter = "all" | "pending" | "completed";
+export type Filter = "all" | "pending" | "completed";
 
 type Events = "clear-all" | "clear-completed" | "complete-all";
 
