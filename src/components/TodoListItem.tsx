@@ -19,7 +19,7 @@ export const TodoListItem = ({ item }: Props) => {
                 id={`item_${item.id}`}
                 onChange={() => toggle()}
             />
-            <EditableText text={item.text} />
+            <EditableText text={item.text} update={text => update("addOrUpdate", { ...item, text })} />
         </li>
     );
 };

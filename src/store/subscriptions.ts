@@ -1,7 +1,12 @@
 import { subscribe, get, update } from "./store";
 
-subscribe("add", todo => {
+subscribe("addOrUpdate", todo => {
     if(!todo) {
+        return;
+    }
+
+    if(todo.id) {
+        update("items", items => items.map(item => item.id === todo.id ? todo : item));
         return;
     }
 

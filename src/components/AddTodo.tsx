@@ -17,7 +17,7 @@ export const AddTodo = () => {
             return;
         }
 
-        update("add", { done: false, id: 0, text: text.trim() });
+        update("addOrUpdate", { done: false, id: 0, text: text.trim() });
         setText("");
     };
 
