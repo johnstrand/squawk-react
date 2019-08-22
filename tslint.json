@@ -1,13 +1,22 @@
 {
     "defaultSeverity": "error",
     "extends": [
-        "tslint:recommended"
+        "tslint:latest",
+        "tslint-config-prettier"
     ],
     "jsRules": {},
     "rules": {
         "interface-name": false,
         "space-before-function-paren": false,
         "only-arrow-functions": false,
+        "trailing-comma": [
+            true,
+            {
+                "multiline": {
+                    "functions": "never"
+                }
+            }
+        ]
     },
     "rulesDirectory": []
 }

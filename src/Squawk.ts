@@ -1,4 +1,4 @@
-import { useReducer, useEffect } from "react";
+import { useEffect, useReducer } from "react";
 
 export default function createStore<TStore, EventProps extends string = never>(
     globalState: TStore
