@@ -98,11 +98,18 @@ export default function createStore<TStore, EventProps extends string = never>(
     }
 
     return {
+        /** Helper function to create "prebaked" update methods */
+        action<T>(reducer: (value: TStore, payload: T) => Partial<TStore>) {
+            return (payload: T) => {
+                internalUpdate(reducer(globalState, payload));
+            };
+        },
         /** Returns a specific named value from the global state */
         get,
         event<TEvent extends EventProps>(event: TEvent): void {
             internalUpdate({ [event]: undefined });
         },
+        /** Sets up an event subscription, returns a method that will unsubscribe when invoked */
         onEvent<TEvent extends EventProps>(
             event: TEvent,
             callback: () => any
