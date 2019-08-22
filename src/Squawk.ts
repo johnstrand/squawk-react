@@ -99,9 +99,9 @@ export default function createStore<TStore, EventProps extends string = never>(
 
     return {
         /** Helper function to create "prebaked" update methods */
-        action<T>(reducer: (value: TStore, payload: T) => Partial<TStore>) {
+        action<T>(reducer: (value: TStore, payload: T) => Promise<Partial<TStore>> | Partial<TStore>) {
             return (payload: T) => {
-                internalUpdate(reducer(globalState, payload));
+                Promise.resolve(reducer(globalState, payload)).then(internalUpdate);
             };
         },
         /** Returns a specific named value from the global state */
