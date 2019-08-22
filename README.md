@@ -13,7 +13,8 @@ A simple support library for managing global state in React applications, with h
 ```typescript
 function createStore<T, EventProps extends string = never>(globalState: T)
 
-export const { 
+export const {
+    action,
     event,
     get,
     onEvent,
@@ -29,6 +30,22 @@ The type T describes the root object of the store, and the argument is the initi
 Any time an event is referenced, it is one of the root properties of T (via keyof T). 
 
 The function returns an object with the following methods:
+
+## action
+
+```typescript
+action<TPayload>(reducer: (store: T, payload: TPayload) => Partial<T>)
+
+const updateProp = action<string>((store, payload) => {
+    return { prop: payload };
+});
+
+/* ... */
+
+updateProp("the new value");
+```
+
+Creates a reusable action to update parts or all of the global state. The function takes a callback which will accept a value of a specified type, and returns either a Partial<T>, or a Promise<Partial<T>> of the global state. Promises are automatically awaited, and errors will be thrown as exceptions
 
 ## get
 
@@ -79,11 +96,11 @@ Updates one or more property values, by one of four ways. Two variants to handle
 ```typescript
 useSquawk(...props)
 
-const state = useSquawk("myProp", "myOtherProp");
+const { myProp, myOtherProp } = useSquawk("myProp", "myOtherProp");
 /*
 ..
 */
-</*...*/ someProp={state.myProp} />
+</*...*/ someProp={myProp} />
 ```
 
 Sets up a hook for the specified properties, and returns an object with the current values. Also triggers an update whenever one or more properties are updated.
@@ -93,7 +110,7 @@ Sets up a hook for the specified properties, and returns an object with the curr
 # Events
 Events are much like the props above, except that they don't have a value, only a name. These are basically here to notify the rest of the application that something has happened, without attaching data to it.
 
-## event (New)
+## event
 
 ```typescript
 event(event)
@@ -103,7 +120,7 @@ event("myEvent")
 
 Dispatches an event for anyone listening
 
-## onEvent (New)
+## onEvent
 
 ```typescript
 onEvent(event, callback)
@@ -113,7 +130,7 @@ onEvent("myEvent", () => { /* ... */ })
 
 Invokes a callback when an event occurs. This is the equivalent of subscribe, but separated to make it clear that this is an event and not an updated value
 
-## useEvent (New)
+## useEvent
 
 ```typescript
 useEvent(event, callback)
