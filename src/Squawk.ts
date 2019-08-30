@@ -97,22 +97,17 @@ export default function createStore<TStore, EventProps extends string = never>(
         return context ? globalState[context] : globalState;
     }
 
+    function action<T>(reducer: (value: TStore, payload: T) => Promise<Partial<TStore>> | Partial<TStore>): (payload: T) => any
+    function action(reducer: (value: TStore) => Promise<Partial<TStore>> | Partial<TStore>): () => any
+    function action<T>(reducer: (value: TStore, payload: T) => Promise<Partial<TStore>> | Partial<TStore>): (payload: T) => any {
+        return (payload: T) => {
+            Promise.resolve(reducer(globalState, payload)).then(internalUpdate);
+        };
+    }
+
     return {
         /** Helper function to create "prebaked" update methods */
-        action<T>(
-            reducer: (
-                value: TStore,
-                payload: T
-            ) => Promise<Partial<TStore>> | Partial<TStore>
-        ) {
-            return (payload: T) => {
-                Promise.resolve(reducer(globalState, payload))
-                    .then(internalUpdate)
-                    .catch(err => {
-                        throw err;
-                    });
-            };
-        },
+        action,
         /** Returns a specific named value from the global state */
         get,
         event<TEvent extends EventProps>(event: TEvent): void {

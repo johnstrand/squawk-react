@@ -35,17 +35,35 @@ The function returns an object with the following methods:
 
 ```typescript
 action<TPayload>(reducer: (store: T, payload: TPayload) => Partial<T>)
+action(reducer: (value: TStore) => Promise<Partial<TStore>> | Partial<TStore>)
 
 const updateProp = action<string>((store, payload) => {
     return { prop: payload };
 });
 
+const incrementProp = action(store => {
+    return { someProp: store.someProp + 1 };
+});
+
 /* ... */
 
 updateProp("the new value");
+incrementProp();
 ```
 
-Creates a reusable action to update parts or all of the global state. The function takes a callback which will accept a value of a specified type, and returns either a Partial<T>, or a Promise<Partial<T>> of the global state. Promises are automatically awaited, and errors will be thrown as exceptions
+Creates a reusable action to update parts or all of the global state. The function has two variants:
+1. takes a callback which will accept the current store state, and a value of a specified type, and returns either a Partial<T>, or a Promise<Partial<T>> of the global state.
+2. takes a callback which will accept only the current store state, and returns either a Partial<T>, or a Promise<Partial<T>> of the global state.
+
+If the action returns a promise it will be automatically awaited, and errors will be thrown as exceptions. As such, an action can be made async:
+
+```typescript
+const updateRemoteValue = action<Foo>(async (store, foo) => {
+    const createdFoo = await fetch(...);
+
+    return { foos: [store.foos, ...createdFoo] };
+});
+```
 
 ## get
 
