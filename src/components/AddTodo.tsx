@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { update } from "../store/store";
 import { Link } from "./Link";
+import { addTodo } from "../store/actions";
 
 export const AddTodo = () => {
     const [text, setText] = useState("");
@@ -17,7 +17,7 @@ export const AddTodo = () => {
             return;
         }
 
-        update("addOrUpdate", { done: false, id: 0, text: text.trim() });
+        addTodo({ done: false, id: 0, text: text.trim() });
         setText("");
     };
 

@@ -11,18 +11,14 @@ export type Filter = "all" | "pending" | "completed";
 type Events = "clear-all" | "clear-completed" | "complete-all";
 
 interface AppState {
-    addOrUpdate: TodoItem | null;
     id: number;
     items: TodoItem[];
     filter: Filter;
-    toggle: number | null;
 }
 
 // Set up initial value of store
-export const { event, get, onEvent, subscribe, update, useSquawk } = createStore<AppState, Events>({
-    addOrUpdate: null,
+export const { action, event, get, onEvent, subscribe, update, useSquawk } = createStore<AppState, Events>({
     id: 1,
     items: [],
-    filter: "all",
-    toggle: null
+    filter: "all"
 });

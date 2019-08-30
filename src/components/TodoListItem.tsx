@@ -1,15 +1,13 @@
 import React from "react";
-import { TodoItem, update } from "../store/store";
+import { TodoItem } from "../store/store";
 import { EditableText } from "./EditableText";
+import { updateTodo, toggleTodo } from "../store/actions";
 
 interface Props {
     item: TodoItem;
 }
 
 export const TodoListItem = ({ item }: Props) => {
-    const toggle = () => {
-        update("toggle", item.id);
-    };
 
     return (
         <li>
@@ -17,9 +15,9 @@ export const TodoListItem = ({ item }: Props) => {
                 type="checkbox"
                 checked={item.done}
                 id={`item_${item.id}`}
-                onChange={() => toggle()}
+                onChange={() => toggleTodo(item.id)}
             />
-            <EditableText text={item.text} update={text => update("addOrUpdate", { ...item, text })} />
+            <EditableText text={item.text} update={text => updateTodo({ ...item, text })} />
         </li>
     );
 };

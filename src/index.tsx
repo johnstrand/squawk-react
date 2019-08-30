@@ -4,7 +4,6 @@ import './index.css';
 import App from './App';
 import * as serviceWorker from './serviceWorker';
 
-import "./store/subscriptions";
 import "./store/events";
 
 ReactDOM.render(<App />, document.getElementById('root'));
