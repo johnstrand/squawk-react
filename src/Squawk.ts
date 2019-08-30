@@ -150,9 +150,9 @@ export default function createStore<TStore, EventProps extends string = never>(
             };
 
             /** Simple merging reducer, as we will only dispatch partial states */
-            const mergingReducer = (state: any, action: any) => ({
+            const mergingReducer = (state: any, mergeAction: any) => ({
                 ...state,
-                ...action
+                ...mergeAction
             });
 
             /** Derive local state from global state */
