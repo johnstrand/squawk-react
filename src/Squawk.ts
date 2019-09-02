@@ -97,6 +97,9 @@ export default function createStore<TStore, EventProps extends string = never>(
         return context ? globalState[context] : globalState;
     }
 
+    function action(
+        reducer: (value: TStore) => Promise<Partial<TStore>> | Partial<TStore>
+    ): () => any;
     function action<T>(
         reducer: (
             value: TStore,
@@ -104,14 +107,11 @@ export default function createStore<TStore, EventProps extends string = never>(
         ) => Promise<Partial<TStore>> | Partial<TStore>
     ): (payload: T) => any;
     function action(
-        reducer: (value: TStore) => Promise<Partial<TStore>> | Partial<TStore>
-    ): () => any;
-    function action(
         reducer: (
             value: TStore,
-            payload?: any
+            payload: any
         ) => Promise<Partial<TStore>> | Partial<TStore>
-    ): (payload: any) => any {
+    ) {
         return (payload: any) => {
             Promise.resolve(reducer(globalState, payload)).then(internalUpdate);
         };
