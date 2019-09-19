@@ -122,10 +122,13 @@ export default function createStore<TStore, EventProps extends string = never>(
         action,
         /** Returns a specific named value from the global state */
         get,
+        /** @deprecated Use actions instead */
         event<TEvent extends EventProps>(event: TEvent): void {
             internalUpdate({ [event]: undefined });
         },
-        /** Sets up an event subscription, returns a method that will unsubscribe when invoked */
+        /** Sets up an event subscription, returns a method that will unsubscribe when invoked
+         * @deprecated Use actions instead
+         */
         onEvent<TEvent extends EventProps>(
             event: TEvent,
             callback: () => any
@@ -143,6 +146,7 @@ export default function createStore<TStore, EventProps extends string = never>(
         },
         /** Update 1 or more global state contexts. The callback receives the global state and what contexts are updated are determined by what it returns */
         update,
+        /** @deprecated Use actions instead */
         useEvent<TEvent extends EventProps>(
             event: TEvent,
             callback: () => any
