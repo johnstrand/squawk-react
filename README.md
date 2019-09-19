@@ -125,7 +125,9 @@ Sets up a hook for the specified properties, and returns an object with the curr
 
 **NOTE: useSquawk previously returned a tuple with a dispatch method. This has been removed in favor of simply using the global update method instead.**
 
-# Events
+# Events (deprecated)
+**Events should be considered deprecated, and should not be relied on. Anything previously solved with events can be handled with actions instead**
+
 Events are much like the props above, except that they don't have a value, only a name. These are basically here to notify the rest of the application that something has happened, without attaching data to it.
 
 ## event
