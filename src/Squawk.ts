@@ -126,7 +126,8 @@ export default function createStore<TStore, EventProps extends string = never>(
         event<TEvent extends EventProps>(event: TEvent): void {
             internalUpdate({ [event]: undefined });
         },
-        /** Sets up an event subscription, returns a method that will unsubscribe when invoked
+        /**
+         * Sets up an event subscription, returns a method that will unsubscribe when invoked
          * @deprecated Use actions instead
          */
         onEvent<TEvent extends EventProps>(
