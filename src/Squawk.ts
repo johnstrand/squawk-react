@@ -1,8 +1,6 @@
 import { useEffect, useReducer, useState } from "react";
 
-export default function createStore<TStore, EventProps extends string = never>(
-    globalState: TStore
-) {
+export default function createStore<TStore>(globalState: TStore) {
     type StoreProps = keyof TStore;
     type StorePending = {
         [K in StoreProps]: number;
@@ -128,20 +126,6 @@ export default function createStore<TStore, EventProps extends string = never>(
         action,
         /** Returns a specific named value from the global state */
         get,
-        /** @deprecated Use actions instead */
-        event<TEvent extends EventProps>(event: TEvent): void {
-            internalUpdate({ [event]: undefined });
-        },
-        /**
-         * Sets up an event subscription, returns a method that will unsubscribe when invoked
-         * @deprecated Use actions instead
-         */
-        onEvent<TEvent extends EventProps>(
-            event: TEvent,
-            callback: () => any
-        ): () => void {
-            return internalSubscribe([event as string], callback);
-        },
         pending<TContext extends StoreProps>(
             context: TContext,
             state: boolean
@@ -166,13 +150,6 @@ export default function createStore<TStore, EventProps extends string = never>(
         },
         /** Update 1 or more global state contexts. The callback receives the global state and what contexts are updated are determined by what it returns */
         update,
-        /** @deprecated Use actions instead */
-        useEvent<TEvent extends EventProps>(
-            event: TEvent,
-            callback: () => any
-        ) {
-            useEffect(() => internalSubscribe([event as string], callback));
-        },
         usePending<TContext extends StoreProps>(context: TContext) {
             const [pending, setPending] = useState(!!pendingState[context]);
 
