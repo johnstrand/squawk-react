@@ -1,9 +1,12 @@
-import { useEffect, useReducer } from "react";
+import { useEffect, useReducer, useState } from "react";
 
 export default function createStore<TStore, EventProps extends string = never>(
     globalState: TStore
 ) {
     type StoreProps = keyof TStore;
+    type StorePending = {
+        [K in StoreProps]: number;
+    };
 
     /** Type alias for reducers: (value: T) => any */
     type Reducer<T = any> = (value: T) => any;
@@ -18,6 +21,9 @@ export default function createStore<TStore, EventProps extends string = never>(
     /** Map that links individual keys in TStore to the reducer callbacks */
     const subscribers = new Map<string, Set<Reducer>>();
     const subscriberCache = new Map();
+
+    const pendingState: StorePending = ({} as unknown) as StorePending;
+    const pendingSubscribers = new Map<string, Set<(state: boolean) => void>>();
 
     /** Actual update method, handles resolving subscribers and reducers */
     const internalUpdate = (value: any) => {
@@ -136,6 +142,19 @@ export default function createStore<TStore, EventProps extends string = never>(
         ): () => void {
             return internalSubscribe([event as string], callback);
         },
+        pending<TContext extends StoreProps>(
+            context: TContext,
+            state: boolean
+        ) {
+            pendingState[context] =
+                (pendingState[context] || 0) + (state ? 1 : -1);
+            if (!pendingSubscribers.has(context as string)) {
+                return;
+            }
+            pendingSubscribers
+                .get(context as string)!
+                .forEach(callback => callback(pendingState[context] > 0));
+        },
         /** Sets up a subscription for a single global state context */
         subscribe<TContext extends StoreProps>(
             context: TContext,
@@ -153,6 +172,27 @@ export default function createStore<TStore, EventProps extends string = never>(
             callback: () => any
         ) {
             useEffect(() => internalSubscribe([event as string], callback));
+        },
+        usePending<TContext extends StoreProps>(context: TContext) {
+            const [pending, setPending] = useState(!!pendingState[context]);
+
+            if (!pendingSubscribers.has(context as string)) {
+                pendingSubscribers.set(context as string, new Set());
+            }
+            const callback = (state: boolean) => setPending(state);
+
+            pendingSubscribers.get(context as string)!.add(callback);
+
+            const unsubscriber = () =>
+                pendingSubscribers.get(context as string)!.delete(callback);
+
+            useEffect(() => {
+                return () => {
+                    unsubscriber();
+                };
+            }, [unsubscriber]);
+
+            return pending;
         },
         /** Use the squawk hook. The local state will be whatever the reducer returns. The method returns the current local state, and a method to update the global state */
         useSquawk<TContext extends StoreProps>(
