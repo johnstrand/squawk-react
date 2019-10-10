@@ -8,8 +8,6 @@ export interface TodoItem {
 
 export type Filter = "all" | "pending" | "completed";
 
-type Events = "clear-all" | "clear-completed" | "complete-all";
-
 interface AppState {
     id: number;
     items: TodoItem[];
@@ -17,7 +15,15 @@ interface AppState {
 }
 
 // Set up initial value of store
-export const { action, event, get, onEvent, subscribe, update, useSquawk } = createStore<AppState, Events>({
+export const {
+    action,
+    get,
+    pending,
+    subscribe,
+    update,
+    usePending,
+    useSquawk
+} = createStore<AppState>({
     id: 1,
     items: [],
     filter: "all"

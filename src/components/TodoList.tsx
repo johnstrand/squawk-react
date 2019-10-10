@@ -1,20 +1,25 @@
-import React from "react";
-import { useSquawk, TodoItem, update } from "../store/store";
+import React, { useMemo } from "react";
+import { useSquawk, TodoItem, usePending, Filter } from "../store/store";
 import { TodoListItem } from "./TodoListItem";
 import { Link } from "./Link";
+import { setFilter } from "../store/actions";
+
+const applyFilter = (item: TodoItem, filter: Filter) => {
+    return (
+        filter === "all" ||
+        (filter === "completed" && item.done) ||
+        (filter === "pending" && !item.done)
+    );
+};
 
 export const TodoList = () => {
     const { items, filter } = useSquawk("items", "filter");
+    const loading = usePending("items");
 
-    const applyFilter = (item: TodoItem) => {
-        return (
-            filter === "all" ||
-            (filter === "completed" && item.done) ||
-            (filter === "pending" && !item.done)
-        );
-    };
-
-    const list = items.filter(applyFilter);
+    const list = useMemo(
+        () => items.filter(item => applyFilter(item, filter)),
+        [items, filter]
+    );
 
     if (!list.length) {
         return !items.length || filter === "all" ? (
@@ -22,7 +27,7 @@ export const TodoList = () => {
         ) : (
             <div>
                 There are no items to display, you can try setting the filter to
-                <Link onClick={() => update("filter", "all")}>All</Link>
+                <Link onClick={() => setFilter("all")}>All</Link>
             </div>
         );
     }
@@ -30,7 +35,7 @@ export const TodoList = () => {
     return (
         <ul>
             {list.map(item => (
-                <TodoListItem key={item.id} item={item} />
+                <TodoListItem loading={loading} key={item.id} item={item} />
             ))}
         </ul>
     );

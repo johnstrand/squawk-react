@@ -1,12 +1,9 @@
 import React from "react";
-import { useSquawk, Filter as FilterType, update } from "../store/store";
+import { useSquawk } from "../store/store";
+import { setFilter } from "../store/actions";
 
 export const Filter = () => {
     const { filter } = useSquawk("filter");
-
-    const setFilter = (f: FilterType) => () => {
-        update("filter", f);
-    };
 
     return (
         <div>
@@ -16,7 +13,7 @@ export const Filter = () => {
                 id="all"
                 name="filter"
                 checked={filter === "all"}
-                onChange={setFilter("all")}
+                onChange={() => setFilter("all")}
             />
             <label htmlFor="all">All</label>
             <input
@@ -24,7 +21,7 @@ export const Filter = () => {
                 id="pending"
                 name="filter"
                 checked={filter === "pending"}
-                onChange={setFilter("pending")}
+                onChange={() => setFilter("pending")}
             />
             <label htmlFor="pending">Pending</label>
             <input
@@ -32,7 +29,7 @@ export const Filter = () => {
                 id="completed"
                 name="filter"
                 checked={filter === "completed"}
-                onChange={setFilter("completed")}
+                onChange={() => setFilter("completed")}
             />
             <label htmlFor="completed">Completed</label>
         </div>
