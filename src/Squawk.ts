@@ -20,6 +20,7 @@ export default function createStore<TStore>(globalState: TStore) {
     const subscribers = new Map<string, Set<Reducer>>();
     const subscriberCache = new Map();
 
+    /** Map that links individual keys in TStore to the pending operation callbacks */
     const pendingState: StorePending = ({} as unknown) as StorePending;
     const pendingSubscribers = new Map<string, Set<(state: boolean) => void>>();
 
@@ -130,14 +131,18 @@ export default function createStore<TStore>(globalState: TStore) {
             context: TContext,
             state: boolean
         ) {
-            pendingState[context] =
-                (pendingState[context] || 0) + (state ? 1 : -1);
+            const newValue = (pendingState[context] || 0) + (state ? 1 : -1);
+            if (newValue < 0) {
+                throw Error(`Too many calls to pending("${context}", false)`);
+            }
+            pendingState[context] = newValue;
+
             if (!pendingSubscribers.has(context as string)) {
                 return;
             }
             pendingSubscribers
                 .get(context as string)!
-                .forEach(callback => callback(pendingState[context] > 0));
+                .forEach(callback => callback(newValue > 0));
         },
         /** Sets up a subscription for a single global state context */
         subscribe<TContext extends StoreProps>(
@@ -150,6 +155,7 @@ export default function createStore<TStore>(globalState: TStore) {
         },
         /** Update 1 or more global state contexts. The callback receives the global state and what contexts are updated are determined by what it returns */
         update,
+        /** Use the pending hook, the value will be true if the number of pending operations per context is greater than 0 */
         usePending<TContext extends StoreProps>(context: TContext) {
             const [pending, setPending] = useState(!!pendingState[context]);
 
