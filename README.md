@@ -13,9 +13,15 @@ A simple support library for managing global state in React applications, with h
 ```typescript
 function createStore<T>(globalState: T);
 
-export const { action, get, subscribe, update, useSquawk } = createStore<
-    IAppState
->({
+export const {
+    action,
+    get,
+    pending,
+    subscribe,
+    update,
+    usePending,
+    useSquawk
+} = createStore<IAppState>({
     /* ... */
 });
 ```
@@ -73,6 +79,19 @@ const store = get();
 
 Fetches the current value of the specified state property, or the entire global state. Be careful with doing modifications, or risk the wrath of the ghost of references past.
 
+## pending
+
+```typescript
+pending(prop, state);
+
+pending(prop, true);
+const value = await fetch(...);
+update({ prop });
+pending(prop, false);
+```
+
+Updates the pending state of the specified state property. This value is handled as number internally, so Squawk can handle multiple pending operations for the same prop.
+
 ## subscribe
 
 ```typescript
@@ -106,6 +125,16 @@ update({ myProp: 1, myOtherProp: true });
 ```
 
 Updates one or more property values, by one of four ways. Two variants to handle when the new value depends on the previous value, and two variaents that will simply overwrite the old value. Two variants that allow for updating more than one property, and two that only allows for updating a single property.
+
+## usePending
+
+```typescript
+usePending(prop);
+
+const myPropLoading = usePending("myProp");
+```
+
+Sets up a hook for the pending state of the specified property, and returns true if the number of pending operations is greater than 0.
 
 ## useSquawk
 
