@@ -127,6 +127,7 @@ export default function createStore<TStore>(globalState: TStore) {
         action,
         /** Returns a specific named value from the global state */
         get,
+        /** Updates the pending status of the specified context */
         pending<TContext extends StoreProps>(
             context: TContext,
             state: boolean
