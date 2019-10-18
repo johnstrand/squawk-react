@@ -32,6 +32,22 @@ Any time an event is referenced, it is one of the root properties of T (via keyo
 
 The function returns an object with the following methods:
 
+# Primary methods
+
+## useSquawk
+
+```typescript
+useSquawk(...props)
+
+const { myProp, myOtherProp } = useSquawk("myProp", "myOtherProp");
+/*
+..
+*/
+</*...*/ someProp={myProp} />
+```
+
+Sets up a hook for the specified properties, and returns an object with the current values. Also triggers an update whenever one or more properties are updated. This method is basically like a global useState, but there is no dispatch and the initializer accepts a list of properties to monitor.
+
 ## action
 
 ```typescript
@@ -67,17 +83,27 @@ const updateRemoteValue = action<Foo>(async (store, foo) => {
 });
 ```
 
-## get
+# Support methods
+
+These methods exist to help with specific scenarios, and should be used in select places. Avoid using update in other places than actions, doing it directly in components can lead to a confusing architecture.
+
+## update
 
 ```typescript
-get(prop);
-get();
+update(reducer);
+update(key, value);
+update(key, reducer);
+update(value);
 
-const value = get("myProp");
-const store = get();
+update(state => ({ myProp: state.myProp + 1, myOtherProp: true }));
+update("myProp", 1);
+update("myProp", myProp => myProp + 1);
+update({ myProp: 1, myOtherProp: true });
 ```
 
-Fetches the current value of the specified state property, or the entire global state. Be careful with doing modifications, or risk the wrath of the ghost of references past.
+Updates one or more property values, by one of four ways. Two variants to handle when the new value depends on the previous value, and two variaents that will simply overwrite the old value. Two variants that allow for updating more than one property, and two that only allows for updating a single property.
+
+One use case for update is to update a property before an async action awaits an operation, such as clearing a list before re-populating.
 
 ## pending
 
@@ -90,7 +116,33 @@ update({ prop });
 pending(prop, false);
 ```
 
-Updates the pending state of the specified state property. This value is handled as number internally, so Squawk can handle multiple pending operations for the same prop.
+Updates the pending state of the specified state property. Squawk can handle multiple pending operations for the same prop.
+
+## usePending
+
+```typescript
+usePending(prop);
+
+const myPropLoading = usePending("myProp");
+```
+
+Sets up a hook for the pending state of the specified property, and returns true if the number of pending operations is greater than 0.
+
+# Legacy methods
+
+These methods should generally not be used, they are a remnant from before actions were introduced.
+
+## get
+
+```typescript
+get(prop);
+get();
+
+const value = get("myProp");
+const store = get();
+```
+
+Fetches the current value of the specified state property, or the entire global state. Be careful with doing modifications, or risk the wrath of the ghost of references past.
 
 ## subscribe
 
@@ -109,48 +161,6 @@ unsubMyEvent();
 Creates a subscription for changes to the the specified state property, invoking the callback with the new value on change. The method returns a function which may later be used to cancel the subscription.
 
 This is used for global service classes, and for class-based components. (Always remember to clean up your subscriptions when your component unmounts)
-
-## update
-
-```typescript
-update(reducer);
-update(key, value);
-update(key, reducer);
-update(value);
-
-update(state => ({ myProp: state.myProp + 1, myOtherProp: true }));
-update("myProp", 1);
-update("myProp", myProp => myProp + 1);
-update({ myProp: 1, myOtherProp: true });
-```
-
-Updates one or more property values, by one of four ways. Two variants to handle when the new value depends on the previous value, and two variaents that will simply overwrite the old value. Two variants that allow for updating more than one property, and two that only allows for updating a single property.
-
-## usePending
-
-```typescript
-usePending(prop);
-
-const myPropLoading = usePending("myProp");
-```
-
-Sets up a hook for the pending state of the specified property, and returns true if the number of pending operations is greater than 0.
-
-## useSquawk
-
-```typescript
-useSquawk(...props)
-
-const { myProp, myOtherProp } = useSquawk("myProp", "myOtherProp");
-/*
-..
-*/
-</*...*/ someProp={myProp} />
-```
-
-Sets up a hook for the specified properties, and returns an object with the current values. Also triggers an update whenever one or more properties are updated.
-
-**NOTE: useSquawk previously returned a tuple with a dispatch method. This has been removed in favor of simply using the global update method instead.**
 
 # Events (deprecated)
 
