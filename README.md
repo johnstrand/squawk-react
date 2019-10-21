@@ -89,7 +89,7 @@ Regardless of whether an action callback is async or not, the action itself will
 <button
     onClick={async () => {
         setLoading(true);
-        await updateRemoveValue(foo);
+        await updateRemoteValue(foo);
         setLoading(false);
     }}
 >
