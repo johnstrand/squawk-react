@@ -104,21 +104,23 @@ export default function createStore<TStore>(globalState: TStore) {
 
     function action(
         reducer: (value: TStore) => Promise<Partial<TStore>> | Partial<TStore>
-    ): () => any;
+    ): () => Promise<void>;
     function action<T>(
         reducer: (
             value: TStore,
             payload: T
         ) => Promise<Partial<TStore>> | Partial<TStore>
-    ): (payload: T) => any;
+    ): (payload: T) => Promise<void>;
     function action(
         reducer: (
             value: TStore,
             payload?: any
         ) => Promise<Partial<TStore>> | Partial<TStore>
     ) {
-        return (payload?: any) => {
-            Promise.resolve(reducer(globalState, payload)).then(internalUpdate);
+        return async (payload?: any) => {
+            await Promise.resolve(reducer(globalState, payload)).then(
+                internalUpdate
+            );
         };
     }
 
