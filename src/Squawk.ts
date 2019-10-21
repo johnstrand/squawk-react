@@ -167,14 +167,11 @@ export default function createStore<TStore>(globalState: TStore) {
 
             pendingSubscribers.get(context as string)!.add(callback);
 
-            const unsubscriber = () =>
-                pendingSubscribers.get(context as string)!.delete(callback);
-
             useEffect(() => {
                 return () => {
-                    unsubscriber();
+                    pendingSubscribers.get(context as string)!.delete(callback);
                 };
-            }, [unsubscriber]);
+            }, [context]);
 
             return pending;
         },
