@@ -73,7 +73,7 @@ Creates a reusable action to update parts or all of the global state. The functi
 1. takes a callback which will accept the current store state, and a value of a specified type, and returns either a Partial<T>, or a Promise<Partial<T>> of the global state.
 2. takes a callback which will accept only the current store state, and returns either a Partial<T>, or a Promise<Partial<T>> of the global state.
 
-If the action returns a promise it will be automatically awaited, and errors will be thrown as exceptions. As such, an action can be made async:
+If the action callback returns a promise it will be automatically awaited, and errors will be thrown as exceptions. As such, an action can be made async:
 
 ```typescript
 const updateRemoteValue = action<Foo>(async (store, foo) => {
@@ -82,6 +82,22 @@ const updateRemoteValue = action<Foo>(async (store, foo) => {
     return { foos: [store.foos, ...createdFoo] };
 });
 ```
+
+Regardless of whether an action callback is async or not, the action itself will return a promise that will be resolved when the callback finishes. As such, it may be used to monitor the progress of an action and show a loading indicator:
+
+```typescript
+<button
+    onClick={async () => {
+        setLoading(true);
+        await updateRemoteValue(foo);
+        setLoading(false);
+    }}
+>
+    Save
+</button>
+```
+
+It may also be used internally in an action to chain actions together in a sequence.
 
 # Support methods
 
