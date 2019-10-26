@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useState } from "react";
+import { useEffect, useReducer, useState, useCallback } from "react";
 
 export default function createStore<TStore>(globalState: TStore) {
     type StoreProps = keyof TStore;
@@ -182,12 +182,15 @@ export default function createStore<TStore>(globalState: TStore) {
             ...contexts: TContext[]
         ): Pick<TStore, TContext> {
             /** Local reducer simply copies the contexts from the state */
-            const localReducer = (state: TStore) => {
-                return contexts.reduce(
-                    (acc, cur) => ({ ...acc, ...{ [cur]: state[cur] } }),
-                    {}
-                ) as Pick<TStore, TContext>;
-            };
+            const localReducer = useCallback(
+                (state: TStore) => {
+                    return contexts.reduce(
+                        (acc, cur) => ({ ...acc, ...{ [cur]: state[cur] } }),
+                        {}
+                    ) as Pick<TStore, TContext>;
+                },
+                [contexts]
+            );
 
             /** Simple merging reducer, as we will only dispatch partial states */
             const mergingReducer = (state: any, mergeAction: any) => ({
@@ -199,26 +202,31 @@ export default function createStore<TStore>(globalState: TStore) {
             const initialLocalState = localReducer(globalState);
 
             /** Initialize useReducer with the local state */
-            const [localState, localDispatcher] = useReducer(
+            let [localState, localDispatcher] = useReducer(
                 mergingReducer,
                 initialLocalState
             );
 
-            /** Set up subscriptions for the contexts in the local state */
-            const unsubscribe = subscriberCache.has(localDispatcher)
-                ? subscriberCache.get(localDispatcher)
-                : internalSubscribe(Object.keys(initialLocalState), value =>
-                      /** value will be the global state, so run it through the local reducer before dispatching it locally */
-                      localDispatcher(localReducer(value))
-                  );
+            useEffect(() => {
+                /** Set up subscriptions for the contexts in the local state */
+                const unsubscribe = subscriberCache.has(localDispatcher)
+                    ? subscriberCache.get(localDispatcher)
+                    : internalSubscribe(
+                          Object.keys(initialLocalState),
+                          value => {
+                              /** value will be the global state, so run it through the local reducer before dispatching it locally */
+                              if (localDispatcher) {
+                                  localDispatcher(localReducer(value));
+                              }
+                          }
+                      );
 
-            useEffect(
-                () => () => {
+                return () => {
                     unsubscribe();
                     subscriberCache.delete(localDispatcher);
-                },
-                [unsubscribe]
-            );
+                    (localDispatcher as any) = undefined;
+                };
+            }, [initialLocalState, localReducer]);
 
             return localState;
         }
