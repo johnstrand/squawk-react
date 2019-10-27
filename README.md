@@ -6,7 +6,7 @@
 
 ![npm bundle size](https://img.shields.io/bundlephobia/minzip/squawk-react.svg)
 
-A simple support library for managing global state in React applications, with hooks! (insert pirate joke here)
+![Logo](https://github.com/johnstrand/squawk-react/raw/master/docs/logo.png "Squawk React") A simple support library for managing global state in React applications, with hooks! (insert pirate joke here)
 
 # API description
 
