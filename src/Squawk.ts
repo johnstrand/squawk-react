@@ -224,6 +224,7 @@ export default function createStore<TStore>(globalState: TStore) {
                 return () => {
                     unsubscribe();
                     subscriberCache.delete(localDispatcher);
+                    /** This prevents the local dispatcher triggering when a component has been unmounted with a pending async action that would otherwise update it */
                     (localDispatcher as any) = undefined;
                 };
             }, [initialLocalState, localReducer]);
