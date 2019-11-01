@@ -103,7 +103,7 @@ It may also be used internally in an action to chain actions together in a seque
 
 Sometimes (a lot of the times), an app will require to use data sourced from some API, but the data will only be used in a single component (or its direct descendants). Such an example might be a component that displays related data to another data item. Using actions alone would require putting this data into the global store, which would crowd the global store and, with time, make it hard to understand how it all works together. The instinct should always be to place data in local state, and only hoist it to global state when it becomes necessary (i.e., a lot of different components, at different parts of the tree needs to access the data).
 
-However, it is still preferable to keep components slim and avoid importing API proxy classes, or even worse, doing direct fetch requests. To simplify this handling, create interfaces for your API proxy classes, and then inject instances of them into the global state. That was, a component can, in a DI-ish fashion, simply ask the store for an API-class, and do its calls, without knowing anything about how or where it is implemented.
+However, it is still preferable to keep components slim and avoid importing API proxy classes, or even worse, doing direct fetch requests. To simplify this handling, create interfaces for your API proxy classes, and then inject instances of them into the global state. That way, a component can, in a DI-ish fashion, simply ask the store for an API-class, and do its calls, without knowing anything about how or where it is implemented.
 
 # Support methods
 
