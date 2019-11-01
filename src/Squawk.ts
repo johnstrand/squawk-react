@@ -131,21 +131,29 @@ export default function createStore<TStore>(globalState: TStore) {
         get,
         /** Updates the pending status of the specified context */
         pending<TContext extends StoreProps>(
-            context: TContext,
+            context: TContext | TContext[],
             state: boolean
         ) {
-            const newValue = (pendingState[context] || 0) + (state ? 1 : -1);
-            if (newValue < 0) {
-                throw Error(`Too many calls to pending("${context}", false)`);
+            if (!Array.isArray(context)) {
+                context = [context];
             }
-            pendingState[context] = newValue;
 
-            if (!pendingSubscribers.has(context as string)) {
-                return;
+            for (const ctx of context) {
+                const newValue = (pendingState[ctx] || 0) + (state ? 1 : -1);
+                if (newValue < 0) {
+                    throw Error(`Too many calls to pending("${ctx}", false)`);
+                }
+                pendingState[ctx] = newValue;
             }
-            pendingSubscribers
-                .get(context as string)!
-                .forEach(callback => callback(newValue > 0));
+
+            for (const ctx of context) {
+                if (!pendingSubscribers.has(ctx as string)) {
+                    return;
+                }
+                pendingSubscribers
+                    .get(ctx as string)!
+                    .forEach(callback => callback(pendingState[ctx] > 0));
+            }
         },
         /** Sets up a subscription for a single global state context */
         subscribe<TContext extends StoreProps>(
