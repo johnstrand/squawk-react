@@ -125,6 +125,7 @@ One use case for update is to update a property before an async action awaits an
 
 ```typescript
 pending(prop, state);
+pending([prop1, prop2], state);
 
 pending(prop, true);
 const value = await fetch(...);
@@ -132,7 +133,7 @@ update({ prop });
 pending(prop, false);
 ```
 
-Updates the pending state of the specified state property. Squawk can handle multiple pending operations for the same prop.
+Updates the pending state of the specified state property or properties. Squawk can handle multiple pending operations for the same prop.
 
 ## usePending
 
