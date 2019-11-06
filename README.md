@@ -210,6 +210,7 @@ This is used for global service classes, and for class-based components. (Always
 3.2 - Introduced Action without parameters, usePending hook for monitoring props about to change, and also removed events
 3.3 - Intorduced awaitable Action, so that components may be notified when an action completes
 3.4 - Bugfixes
+3.5 - Introduced batched calls to pending
 
 # Events (deprecated)
 
