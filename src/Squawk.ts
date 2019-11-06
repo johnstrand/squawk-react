@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useState, useCallback } from "react";
+import { useCallback, useEffect, useReducer, useState } from "react";
 
 export default function createStore<TStore>(globalState: TStore) {
     type StoreProps = keyof TStore;
@@ -210,6 +210,7 @@ export default function createStore<TStore>(globalState: TStore) {
             const initialLocalState = localReducer(globalState);
 
             /** Initialize useReducer with the local state */
+            // tslint:disable-next-line: prefer-const
             let [localState, localDispatcher] = useReducer(
                 mergingReducer,
                 initialLocalState
