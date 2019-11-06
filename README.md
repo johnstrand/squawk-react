@@ -123,7 +123,7 @@ update("myProp", myProp => myProp + 1);
 update({ myProp: 1, myOtherProp: true });
 ```
 
-Updates one or more property values, by one of four ways. Two variants to handle when the new value depends on the previous value, and two variaents that will simply overwrite the old value. Two variants that allow for updating more than one property, and two that only allows for updating a single property.
+Updates one or more property values, by one of four ways. Two variants to handle when the new value depends on the previous value, and two variants that will simply overwrite the old value. Two variants that allow for updating more than one property, and two that only allows for updating a single property.
 
 One use case for update is to update a property before an async action awaits an operation, such as clearing a list before re-populating.
 
