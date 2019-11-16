@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useState, useCallback } from "react";
+import { useCallback, useEffect, useReducer, useState } from "react";
 
 export default function createStore<TStore>(globalState: TStore) {
     type StoreProps = keyof TStore;
@@ -131,21 +131,29 @@ export default function createStore<TStore>(globalState: TStore) {
         get,
         /** Updates the pending status of the specified context */
         pending<TContext extends StoreProps>(
-            context: TContext,
+            context: TContext | TContext[],
             state: boolean
         ) {
-            const newValue = (pendingState[context] || 0) + (state ? 1 : -1);
-            if (newValue < 0) {
-                throw Error(`Too many calls to pending("${context}", false)`);
+            if (!Array.isArray(context)) {
+                context = [context];
             }
-            pendingState[context] = newValue;
 
-            if (!pendingSubscribers.has(context as string)) {
-                return;
+            for (const ctx of context) {
+                const newValue = (pendingState[ctx] || 0) + (state ? 1 : -1);
+                if (newValue < 0) {
+                    throw Error(`Too many calls to pending("${ctx}", false)`);
+                }
+                pendingState[ctx] = newValue;
             }
-            pendingSubscribers
-                .get(context as string)!
-                .forEach(callback => callback(newValue > 0));
+
+            for (const ctx of context) {
+                if (!pendingSubscribers.has(ctx as string)) {
+                    return;
+                }
+                pendingSubscribers
+                    .get(ctx as string)!
+                    .forEach(callback => callback(pendingState[ctx] > 0));
+            }
         },
         /** Sets up a subscription for a single global state context */
         subscribe<TContext extends StoreProps>(
@@ -202,6 +210,7 @@ export default function createStore<TStore>(globalState: TStore) {
             const initialLocalState = localReducer(globalState);
 
             /** Initialize useReducer with the local state */
+            // tslint:disable-next-line: prefer-const
             let [localState, localDispatcher] = useReducer(
                 mergingReducer,
                 initialLocalState
@@ -224,6 +233,7 @@ export default function createStore<TStore>(globalState: TStore) {
                 return () => {
                     unsubscribe();
                     subscriberCache.delete(localDispatcher);
+                    /** This prevents the local dispatcher triggering when a component has been unmounted with a pending async action that would otherwise update it */
                     (localDispatcher as any) = undefined;
                 };
             }, [initialLocalState, localReducer]);
