@@ -14,15 +14,15 @@ A simple support library for managing global state in React applications, with h
 function createStore<T>(globalState: T);
 
 export const {
-    action,
-    get,
-    pending,
-    subscribe,
-    update,
-    usePending,
-    useSquawk
+  action,
+  get,
+  pending,
+  subscribe,
+  update,
+  usePending,
+  useSquawk
 } = createStore<IAppState>({
-    /* ... */
+  /* ... */
 });
 ```
 
@@ -83,17 +83,17 @@ const updateRemoteValue = action<Foo>(async (store, foo) => {
 });
 ```
 
-Regardless of whether an action callback is async or not, the action itself will return a promise that will be resolved when the callback finishes. As such, it may be used to monitor the progress of an action and show a loading indicator:
+Regardless of whether an action callback is async or not, the action itself will return a promise that will be resolved with the updated global state when the callback finishes. As such, it may be used to monitor the progress of an action and show a loading indicator:
 
 ```typescript
 <button
-    onClick={async () => {
-        setLoading(true);
-        await updateRemoteValue(foo);
-        setLoading(false);
-    }}
+  onClick={async () => {
+    setLoading(true);
+    await updateRemoteValue(foo);
+    setLoading(false);
+  }}
 >
-    Save
+  Save
 </button>
 ```
 
@@ -101,7 +101,7 @@ It may also be used internally in an action to chain actions together in a seque
 
 ## A note on actions v.s. local state
 
-Sometimes (a lot of the times), an app will require to use data sourced from some API, but the data will only be used in a single component (or its direct descendants). Such an example might be a component that displays related data to another data item. Using actions alone would require putting this data into the global store, which would crowd the global store and, with time, make it hard to understand how it all works together. The instinct should always be to place data in local state, and only hoist it to global state when it becomes necessary (i.e., a lot of different components, at different parts of the tree needs to access the data).
+Sometimes (a lot of the times), an app will require to use data sourced from some API, but the data will only be used in a single component (or its direct descendants). Such an example might be a component that displays related data to another data item. Using actions alone would require putting this data into the global store, which would needlessly crowd the global store and, with time, make it hard to understand how it all works together. The instinct should always be to place data in local state, and only hoist it to global state when it becomes necessary (i.e., a lot of different components, at different parts of the tree needs to access the data).
 
 However, it is still preferable to keep components slim and avoid importing API proxy classes, or even worse, doing direct fetch requests. To simplify this handling, create interfaces for your API proxy classes, and then inject instances of them into the global state. That way, a component can, in a DI-ish fashion, simply ask the store for an API-class, and do its calls, without knowing anything about how or where it is implemented.
 
@@ -173,7 +173,7 @@ Fetches the current value of the specified state property, or the entire global 
 subscribe(prop, callback);
 
 const unsubMyEvent = subscribe("myProp", value => {
-    /* ... */
+  /* ... */
 });
 /*
 ...
