@@ -6,7 +6,7 @@
 
 ![npm bundle size](https://img.shields.io/bundlephobia/minzip/squawk-react.svg)
 
-A simple support library for managing global state in React applications, with hooks! (insert pirate joke here)
+A simple support library for managing global state in React applications, with hooks! (insert pirate joke here). Squawk is also compatible with React Native, so long as the underlying React version is up-to-date enough to support hooks.
 
 # API description
 
