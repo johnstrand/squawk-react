@@ -1,0 +1,229 @@
+# Tutorial
+
+Let's pretend that we have run `npx create-react-app my-app --template=typescript` and removed the CSS, the tests, and the logo, and then removed the references to those items.
+
+`App.tsx` now looks like this:
+
+```tsx
+import React from "react";
+
+const App = () => {
+  return <div></div>;
+};
+
+export default App;
+```
+
+First, run `npm i --save squawk-react` to add squawk to the project.
+
+Let's now add a store, in `src` create `Store.ts`, and add this:
+
+```typescript
+import createStore from "squawk-react";
+
+export interface Item {
+  id: number;
+  text: string;
+}
+
+interface AppState {
+  items: Item[];
+  count: number;
+}
+
+export const { action, useSquawk } = createStore<AppState>({
+  items: [], // Initialize to empty list
+  count: 0 // Initialize to zero
+});
+```
+
+We import `createStore` from squawk. The interface Item is just a sample interface, but AppState is the type that describes the items in the global state. That is to say, each property of the interface is an individual, subscribable thing. Squawk is clever enough to figure out which components need to be rerendered when a part of the state updates.
+
+Next, in src again, create `Actions.ts`, and add this:
+
+```typescript
+import { action } from "./Store";
+
+export const increment = action(state => {
+  return { count: state.count + 1 };
+});
+
+export const decrement = action(state => {
+  // Prevent value to go below zero
+  return { count: Math.max(state.count - 1, 0) };
+});
+
+export const reset = action(() => {
+  return { count: 0 };
+});
+
+export const addItem = action<string>((state, text) => {
+  // This can be ignored in the context of this tutorial, but
+  // it searches the list of items for the highest ID (and defaults to 0)
+  // and adds 1 to it for the next ID.
+  const id =
+    state.items.reduce((acc, cur) => (cur.id > acc ? cur.id : acc), 0) + 1;
+  // Using a spread operator, add the new item to the end of the list
+  // Why not use push? Arrays in JavaScript are reference types,
+  // and push won't change the reference, which means that JavaScript
+  // (and Squawk) won't be able to tell that anything has changed
+  return { items: [...state.items, { id, text }] };
+});
+```
+
+We have no created the 3 rough variants of actions:
+
+- Action that receives the existing state and returns a modified version
+- Action that disregards the existing state and simply sets a value
+- Action that receives the existing state, and a payload, and uses the payload to modify the state
+
+(Of course, a forth version exists, where one ignores the state and uses the payload to simply overwrite the existing state).
+
+The item that an action returns will be used to update the state. Note that despite the state containing both count and items, we only need to return the property we wish to modify. Sometimes, an action might need to modify more than one property, and it is valid to return as few or as many state properties as necessary.
+
+Should one find that there is no need to update the state, it is also valid to simply return `{}`, and no update will be performed at all.
+
+Modify `App.tsx` to look like this:
+
+```tsx
+import React from "react";
+import Counter from "./Counter";
+
+const App = () => {
+  return (
+    <div>
+      <Counter />
+    </div>
+  );
+};
+
+export default App;
+```
+
+Don't worry about the errors, we're about to create `Counter.tsx`, with this content:
+
+```tsx
+import React from "react";
+import { useSquawk } from "./Store";
+import { increment, reset, decrement } from "./Actions";
+
+const Counter = () => {
+  const { count } = useSquawk("count");
+
+  return (
+    <div>
+      <h1>{count}</h1>
+      <div>
+        <button onClick={() => increment()}>+</button>
+        <button onClick={() => reset()}>reset</button>
+        <button onClick={() => decrement()}>-</button>
+      </div>
+    </div>
+  );
+};
+
+export default Counter;
+```
+
+So, we have imported the `useSquawk hook`, and 3 of the actions we defined earlier. We create the component, and set up our subscription with this line:
+
+```tsx
+const { count } = useSquawk("count");
+```
+
+With TypeScript, you'll find that the arguments passed to `useSquawk` are limited to the names of the properties defined in the interface `AppState`, and that the properties in the derived state match the passed in arguments.
+
+Next, we simply render the value in count, and pass the actions into the event handlers of the buttons. If you run the app in its current state, you should find a nice big zero, and buttons that allow you to increase, decrease, and reset the number. You should also find that you are unable to go below zero.
+
+Before we move on, this might be a good time to experiment a bit. Some suggestions:
+
+- Make the increment method increment in larger intervals
+- Add an action that sets count to a random value
+- Add a max value for count
+- Add a button that multiplies the current value
+
+Let's move on, and return to our friend `App.tsx`. Now modify it to look like this:
+
+```tsx
+import React from "react";
+import Counter from "./Counter";
+import AddItem from "./AddItem";
+import ItemList from "./ItemList";
+
+const App = () => {
+  return (
+    <div>
+      <Counter />
+      <hr />
+      <AddItem />
+      <ItemList />
+    </div>
+  );
+};
+
+export default App;
+```
+
+Again, let's not worry about errors, and move on to create `AddItem.tsx`, and it's time to mix local and global state:
+
+```tsx
+import React, { useState } from "react";
+import { addItem } from "./Actions";
+
+const AddItem = () => {
+  const [text, setText] = useState("");
+  const add = () => {
+    addItem(text).then(() => setText(""));
+  };
+
+  return (
+    <div>
+      <input value={text} onChange={e => setText(e.currentTarget.value)} />{" "}
+      <button disabled={!text} onClick={add}>
+        Add
+      </button>
+    </div>
+  );
+};
+
+export default AddItem;
+```
+
+While you are typing, the component will, via `useState`, update its local state. Once you click the button, however, it will call the `addItem` action with the current text as payload, then await the action to finish, and finally clear the local state.
+
+This tutorial doesn't use a remote API, so the call to addItem will return immediately. However, in a situation where an action will do one or more API calls, it might be very useful for a component to be able to wait for an action to finish. This allows the component to display a spinner or similar activities.
+
+Next, and finally, let's implement `ItemList.tsx`, and it looks like this:
+
+```tsx
+import React from "react";
+import { useSquawk } from "./Store";
+
+const ItemList = () => {
+  const { items } = useSquawk("items");
+  if (items.length === 0) {
+    return <div>Empty list</div>;
+  }
+
+  return (
+    <ul>
+      {items.map(item => (
+        <li key={item.id}>{item.text}</li>
+      ))}
+    </ul>
+  );
+};
+
+export default ItemList;
+```
+
+Much like `Counter`, it uses `useSquawk` to create a subscription to the items property, and every time the Add button is clicked in `AddItem`, the list will re-render with the new content.
+
+The tutorial ends here, but I'll leave you with a few suggestions for things to try:
+
+- Create a button that sets count to the length of the list
+- Add an action that clears the list
+- Refactor list item into a separate component, and make them editable
+- Add a delete button
+- Add new items to the start of the list
+- Instead of finding the highest ID each time an item is added, make ID part of the global state, and increment it each time a new item is added
