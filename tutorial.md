@@ -1,6 +1,8 @@
 # Tutorial
 
-Let's pretend that we have run `npx create-react-app my-app --template=typescript` and removed the CSS, the tests, and the logo, and then removed the references to those items.
+Let's pretend that we have run `npx create-react-app squawk-tutorial --template=typescript` and removed the CSS, the tests, and the logo, and then removed the references to those items.
+
+(If you don't want to pretend, you can download a starting project [here](./tutorial/squawk-tutorial.zip), just extract that into an appropriate directory)
 
 `App.tsx` now looks like this:
 
