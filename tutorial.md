@@ -149,7 +149,7 @@ With TypeScript, you'll find that the arguments passed to `useSquawk` is limited
 
 Next, we simply render the value in count, and pass the actions into the event handlers of the buttons. If you run the app in its current state, you should find a nice big zero, and buttons that allow you to increase, decrease, and reset the number. You should also find that you are unable to go below zero.
 
-Before we move on, this might be a good time to experiment a bit. Here are ome suggestions:
+Before we move on, this might be a good time to experiment a bit. Here are some suggestions:
 
 - Make the increment method increment in larger intervals
 - Add an action that sets count to a random value
@@ -233,7 +233,7 @@ export default ItemList;
 
 Much like `Counter`, it uses `useSquawk` to create a subscription to the items property, and every time the Add button is clicked in `AddItem`, the list will re-render with the new content.
 
-The tutorial is almost over, but before moving on, a here are a few more suggestions to try out:
+The tutorial is almost over, but before moving on, here are a few more suggestions to try out:
 
 - Create a button that sets count to the length of the list
 - Add an action that clears the list
