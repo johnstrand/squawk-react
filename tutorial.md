@@ -22,7 +22,7 @@ const App = () => {
 export default App;
 ```
 
-Next, add let's squawk to the project:
+Next, let's add `squawk-react` to the project:
 
 ```bash
 npm i --save squawk-react
@@ -139,7 +139,7 @@ const Counter = () => {
 export default Counter;
 ```
 
-Here, we've imported the `useSquawk hook`, and 3 of the actions we defined earlier. The subscription from the component to squawks store is created through the following line in `Counter.tsx`:
+Here, we've imported the `useSquawk` hook, and 3 of the actions we defined earlier. The subscription from the component to squawks store is created through the following line in `Counter.tsx`:
 
 ```tsx
 const { count } = useSquawk("count");
