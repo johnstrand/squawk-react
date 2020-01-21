@@ -1,10 +1,16 @@
 # Tutorial
 
-Let's pretend that we have run `npx create-react-app squawk-tutorial --template=typescript` and removed the CSS, the tests, and the logo, and then removed the references to those items.
+First, create a new CRA project using the following command
 
-(If you don't want to pretend, you can download a starting project [here](./tutorial/squawk-tutorial.zip), just extract that into an appropriate directory)
+```bash
+npx create-react-app squawk-tutorial --template=typescript
+```
 
-`App.tsx` now looks like this:
+Then remove all files and references to CSS, tests, and the logo.
+
+(If you're lazy, you can download a starting project [here](./tutorial/squawk-tutorial.zip). Just extract that into an appropriate directory)
+
+`App.tsx` should now look like this:
 
 ```tsx
 import React from "react";
@@ -16,9 +22,13 @@ const App = () => {
 export default App;
 ```
 
-First, run `npm i --save squawk-react` to add squawk to the project.
+Next, add let's squawk to the project:
 
-Let's now add a store, in `src` create `Store.ts`, and add this:
+```bash
+npm i --save squawk-react
+```
+
+Let's now add a store. Create `Store.ts` in `src/`, and paste the following in file:
 
 ```typescript
 import createStore from "squawk-react";
@@ -39,9 +49,9 @@ export const { action, useSquawk } = createStore<AppState>({
 });
 ```
 
-We import `createStore` from squawk. The interface Item is just a sample interface, but AppState is the type that describes the items in the global state. That is to say, each property of the interface is an individual, subscribable thing. Squawk is clever enough to figure out which components need to be rerendered when a part of the state updates.
+Notice that we're importing `createStore` from squawk. The interface Item is just a sample interface, but AppState is the type that describes the items in the global state. That is to say, each property of the interface is an individual, subscribable entity. Squawk is clever enough to figure out which components need to be re-rendered when even a _part_ of the state updates.
 
-Next, in src again, create `Actions.ts`, and add this:
+Next, create `Actions.ts` in `src/`, and paste the following in the file:
 
 ```typescript
 import { action } from "./Store";
@@ -73,17 +83,17 @@ export const addItem = action<string>((state, text) => {
 });
 ```
 
-We have no created the 3 rough variants of actions:
+We've now created the 3 rough variants of actions:
 
 - Action that receives the existing state and returns a modified version
 - Action that disregards the existing state and simply sets a value
 - Action that receives the existing state, and a payload, and uses the payload to modify the state
 
-(Of course, a forth version exists, where one ignores the state and uses the payload to simply overwrite the existing state).
+(You may have noticed that a fourth version exists, where one ignores the state and uses the payload to simply overwrite the existing state).
 
-Note that the only time we specify a type is when we have a payload, and that the callback parameters themselves aren't typed. TypeScript is clever enough to figure out types correctly without explicit typing.
+Note that the only time we specify a type for an action is when we have a payload, and the callback parameters themselves aren't typed. TypeScript is clever enough to figure out the types correctly without explicit typing.
 
-The item that an action returns will be used to update the state. Note that despite the state containing both count and items, we only need to return the property we wish to modify. Sometimes, an action might need to modify more than one property, and it is valid to return as few or as many state properties as necessary.
+The item an action returns will be used to update the state. Note that despite the state containing both count and items, we only need to return the property we wish to modify. Sometimes, an action might need to modify more than one property, and it is valid to return as few or as many state properties as necessary.
 
 Should one find that there is no need to update the state, it is also valid to simply return `{}`, and no update will be performed at all.
 
@@ -104,7 +114,7 @@ const App = () => {
 export default App;
 ```
 
-**Don't worry about the errors**, we're about to create `Counter.tsx`, with this content:
+**Don't worry about the errors**, and move on to create `Counter.tsx` with the following content:
 
 ```tsx
 import React from "react";
@@ -129,17 +139,17 @@ const Counter = () => {
 export default Counter;
 ```
 
-So, we have imported the `useSquawk hook`, and 3 of the actions we defined earlier. We create the component, and set up our subscription with this line:
+Here, we've imported the `useSquawk hook`, and 3 of the actions we defined earlier. The subscription from the component to squawks store is created through the following line in `Counter.tsx`:
 
 ```tsx
 const { count } = useSquawk("count");
 ```
 
-With TypeScript, you'll find that the arguments passed to `useSquawk` are limited to the names of the properties defined in the interface `AppState`, and that the properties in the derived state match the passed in arguments.
+With TypeScript, you'll find that the arguments passed to `useSquawk` is limited to the names of the properties defined in the interface `AppState`, and the properties in the derived state match the passed in arguments.
 
 Next, we simply render the value in count, and pass the actions into the event handlers of the buttons. If you run the app in its current state, you should find a nice big zero, and buttons that allow you to increase, decrease, and reset the number. You should also find that you are unable to go below zero.
 
-Before we move on, this might be a good time to experiment a bit. Some suggestions:
+Before we move on, this might be a good time to experiment a bit. Here are ome suggestions:
 
 - Make the increment method increment in larger intervals
 - Add an action that sets count to a random value
@@ -168,7 +178,7 @@ const App = () => {
 export default App;
 ```
 
-Again, let's not worry about errors, and move on to create `AddItem.tsx`, and it's time to mix local and global state:
+Again, don't worry about the errors, and move on to create `AddItem.tsx`. It's time to mix local and global state:
 
 ```tsx
 import React, { useState } from "react";
@@ -197,7 +207,7 @@ While you are typing, the component will, via `useState`, update its local state
 
 This tutorial doesn't use a remote API, so the call to addItem will return immediately. However, in a situation where an action will do one or more API calls, it might be very useful for a component to be able to wait for an action to finish. This allows the component to display a spinner or similar activities.
 
-Next, and finally, let's implement `ItemList.tsx`, and it looks like this:
+Next, create `ItemList.tsx`, and paste the following in the file:
 
 ```tsx
 import React from "react";
@@ -223,7 +233,7 @@ export default ItemList;
 
 Much like `Counter`, it uses `useSquawk` to create a subscription to the items property, and every time the Add button is clicked in `AddItem`, the list will re-render with the new content.
 
-The tutorial is almost over, but before moving on, a few suggestions for things to try:
+The tutorial is almost over, but before moving on, a here are a few more suggestions to try out:
 
 - Create a button that sets count to the length of the list
 - Add an action that clears the list
@@ -280,13 +290,13 @@ const delay = (ms: number) =>
   });
 ```
 
-Note the changes, `action<string>((state, text)) =>` is now `action<string>(async (state, text)) =>`, and you may now use the `await` keyword within an action. This allows an action to perform asynchronous operations without the caller knowing the difference.
+Note the changes, `action<string>((state, text)) =>` is now `action<string>(async (state, text)) =>`. Now you may use the `await` keyword within the action. This allows an action to perform asynchronous operations without the caller knowing the difference.
 
 If you enter some text and press "Add" now, you'll find that it takes a second before the new item is added and the input field resets. This works even though the `AddItem` component hasn't been changed at all. As promised, Squawk silently handles the operations for you.
 
-You'll also find that you can increment and decrement the number as you please, and that the application remains responsive.
+You'll also find that you can increment and decrement the number as you please, while the application remains responsive.
 
-However, we might want to block the input field while the request is pending, so let's do that now. Open `AddItem.tsx` and update it:
+However, we might want to block the input field while the request is pending, so let's do that now. Open `AddItem.tsx` and modify it with the following:
 
 ```tsx
 import React, { useState } from "react";
@@ -324,4 +334,4 @@ const AddItem = () => {
 export default AddItem;
 ```
 
-With our modifications, when you click the Add button, both the button and the input field will be disabled, and the button will display "Loading..." rather than "Add".
+Now when you click the Add button, both the button and the input field will be disabled, and the button will display "Loading..." rather than "Add".
