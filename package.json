@@ -1,6 +1,6 @@
 {
   "name": "squawk-react",
-  "version": "3.7.0-beta0",
+  "version": "3.7.0-beta1",
   "description": "Squawk is a support library for handling global state in React applications",
   "main": "dist/Squawk.js",
   "types": "dist/Squawk.d.ts",
