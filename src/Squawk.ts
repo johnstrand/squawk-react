@@ -9,13 +9,6 @@ export default function createStore<TStore>(globalState: TStore) {
   /** Type alias for reducers: (value: T) => any */
   type Reducer<T = any> = (value: T) => any;
 
-  /** Helper method to produce unique union */
-  const union = <T>(...arrays: T[][]) => {
-    const items = new Set<T>();
-    arrays.forEach(array => array.forEach(item => items.add(item)));
-    return Array.from(items);
-  };
-
   /** Map that links individual keys in TStore to the reducer callbacks */
   const subscribers = new Map<string, Set<Reducer>>();
 
