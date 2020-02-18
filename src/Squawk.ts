@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function createStore<TStore>(globalState: TStore) {
   type StoreProps = keyof TStore;
@@ -45,9 +45,16 @@ export default function createStore<TStore>(globalState: TStore) {
       .map(context => Array.from(subscribers.get(context)!));
 
     /** Get unique reducers and invoke them */
-    union(...reducers).forEach(reducer => {
-      reducer(globalState);
-    });
+    const invokedReducers = new Set<Reducer>();
+    for (const list of reducers) {
+      list.forEach(reducer => {
+        if (invokedReducers.has(reducer)) {
+          return;
+        }
+        invokedReducers.add(reducer);
+        reducer(globalState);
+      });
+    }
   };
 
   /** Internal method for setting up and removing subscriptions */
@@ -225,10 +232,10 @@ export default function createStore<TStore>(globalState: TStore) {
 
       useEffect(() => {
         isMounted.current = true;
-        const _unsubscribe = unsubscribe.current;
+        const unsubscribeRef = unsubscribe.current;
         return () => {
           isMounted.current = false;
-          _unsubscribe();
+          unsubscribeRef();
         };
       }, [unsubscribe]);
 
