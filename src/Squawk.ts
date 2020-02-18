@@ -42,7 +42,7 @@ export default function createStore<TStore>(globalState: TStore) {
     /** Get a (non-unique) list of affected reducers */
     const reducers = contexts
       .filter(context => subscribers.has(context))
-      .map(context => Array.from(subscribers.get(context)!));
+      .map(context => subscribers.get(context)!);
 
     /** Get unique reducers and invoke them */
     const invokedReducers = new Set<Reducer>();
