@@ -39,14 +39,15 @@ export default function createStore<TStore>(globalState: TStore) {
 
     /** Get unique reducers and invoke them */
     const invokedReducers = new Set<Reducer>();
+    const reduceEach = (reducer: Reducer) => {
+      if (invokedReducers.has(reducer)) {
+        return;
+      }
+      invokedReducers.add(reducer);
+      reducer(globalState);
+    };
     for (const list of reducers) {
-      list.forEach(reducer => {
-        if (invokedReducers.has(reducer)) {
-          return;
-        }
-        invokedReducers.add(reducer);
-        reducer(globalState);
-      });
+      list.forEach(reduceEach);
     }
   };
 
@@ -175,7 +176,7 @@ export default function createStore<TStore>(globalState: TStore) {
         pendingSubscribers.set(context as string, new Set());
       }
 
-      let callback = (state: boolean) => setPending(state);
+      const callback = (state: boolean) => setPending(state);
 
       pendingSubscribers.get(context as string)!.add(callback);
 
