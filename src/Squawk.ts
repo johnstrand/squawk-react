@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import produce from "immer";
 
 export default function createStore<TStore>(globalState: TStore) {
   type StoreProps = keyof TStore;
@@ -31,7 +32,10 @@ export default function createStore<TStore>(globalState: TStore) {
     globalState = { ...globalState, ...value };
 
     /** Get a list of affected contexts from value object */
-    const contexts = Object.keys(value);
+    internalDispatch(Object.keys(value));
+  };
+
+  const internalDispatch = (contexts: string[]) => {
     /** Get a (non-unique) list of affected reducers */
     const reducers = contexts
       .filter(context => subscribers.has(context))
@@ -126,11 +130,45 @@ export default function createStore<TStore>(globalState: TStore) {
     };
   }
 
+  function mutableAction(
+    ...reducer: ((value: TStore) => Promise<void> | void)[]
+  ): () => Promise<Readonly<TStore>>;
+  function mutableAction<T>(
+    ...reducer: ((value: TStore, payload: T) => Promise<void> | void)[]
+  ): (payload: T) => Promise<Readonly<TStore>>;
+  function mutableAction(
+    ...reducer: ((value: TStore, payload?: any) => Promise<void> | void)[]
+  ) {
+    return async (payload?: any) => {
+      for (const r of reducer) {
+        const pendingUpdates = new Set<string>();
+        globalState = await Promise.resolve(
+          produce(
+            globalState,
+            st => r(st as TStore, payload),
+            patches => {
+              patches.forEach(patch =>
+                pendingUpdates.add(patch.path[0].toString())
+              );
+            }
+          )
+        );
+        const contexts: string[] = [];
+        pendingUpdates.forEach(context => contexts.push(context));
+        internalDispatch(contexts);
+      }
+
+      return globalState;
+    };
+  }
+
   return {
     /** Helper function to create "prebaked" update methods */
     action,
     /** Returns a specific named value from the global state */
     get,
+    /** Helper function to create "prebaked" mutable update methods (via immerjs) */
+    mutableAction,
     /** Updates the pending status of the specified context */
     pending<TContext extends StoreProps>(
       context: TContext | TContext[],
