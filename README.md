@@ -6,7 +6,7 @@
 
 ![npm bundle size](https://img.shields.io/bundlephobia/minzip/squawk-react.svg)
 
-A simple support library for managing global state in React applications, with hooks! (insert pirate joke here). Squawk is also compatible with React Native, so long as the underlying React version is up-to-date enough to support hooks.
+A global state container library for React applications. Squawk is also compatible with React Native, so long as the underlying React version is up-to-date enough to support hooks.
 
 [Find it on npm](https://www.npmjs.com/package/squawk-react)
 
@@ -23,6 +23,7 @@ export const {
   action,
   get,
   pending,
+  mutableAction,
   subscribe,
   update,
   usePending,
@@ -57,15 +58,22 @@ Sets up a hook for the specified properties, and returns an object with the curr
 ## action
 
 ```typescript
-action<TPayload>(reducer: (store: T, payload: TPayload) => Partial<T>)
-action(reducer: (value: TStore) => Promise<Partial<TStore>> | Partial<TStore>)
+function action(
+  reducer: (value: TStore) => Promise<Partial<TStore>> | Partial<TStore>
+): () => Promise<Readonly<TStore>>;
+function action<T>(
+  reducer: (
+    value: TStore,
+    payload: T
+  ) => Promise<Partial<TStore>> | Partial<TStore>
+): (payload: T) => Promise<Readonly<TStore>>;
 
 const updateProp = action<string>((store, payload) => {
-    return { prop: payload };
+  return { prop: payload };
 });
 
 const incrementProp = action(store => {
-    return { someProp: store.someProp + 1 };
+  return { someProp: store.someProp + 1 };
 });
 
 /* ... */
@@ -76,8 +84,8 @@ incrementProp();
 
 Creates a reusable action to update parts or all of the global state. The function has two variants:
 
-1. takes a callback which will accept the current store state, and a value of a specified type, and returns either a Partial<T>, or a Promise<Partial<T>> of the global state.
-2. takes a callback which will accept only the current store state, and returns either a Partial<T>, or a Promise<Partial<T>> of the global state.
+1. takes a callback which will accept the current store state, and a value of a specified type, and returns either a `Partial<T>`, or a `Promise<Partial<T>>` of the global state.
+2. takes a callback which will accept only the current store state, and returns either a `Partial<T>`, or a `Promise<Partial<T>>` of the global state.
 
 If the action callback returns a promise it will be automatically awaited, and errors will be thrown as exceptions. As such, an action can be made async:
 
@@ -104,6 +112,29 @@ Regardless of whether an action callback is async or not, the action itself will
 ```
 
 It may also be used internally in an action to chain actions together in a sequence.
+
+## mutableAction (New !)
+
+Introduced with the 4.0 beta, mutableAction uses [immer](https://immerjs.github.io/immer/docs/introduction) to create actions that allow you to manipulate the global state as if it were a mutable object.
+
+```typescript
+function mutableAction(
+  ...reducer: ((value: TStore) => Promise<void> | void)[]
+): () => Promise<Readonly<TStore>>;
+function mutableAction<T>(
+  ...reducer: ((value: TStore, payload: T) => Promise<void> | void)[]
+): (payload: T) => Promise<Readonly<TStore>>;
+
+const updateProp = action<string>((store, payload) => {
+  store.prop = payload;
+});
+
+const incrementProp = action(store => {
+  store.someProp++;
+});
+```
+
+Other than allowing for store mutations, it behaves identically to regular actions, with one exception: mutableAction accepts a variadic number of callbacks, and will execute them in sequence. This allows for creating several intermediary states in a longer process.
 
 ## A note on actions v.s. local state
 
