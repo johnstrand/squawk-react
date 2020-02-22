@@ -243,6 +243,8 @@ This is used for global service classes, and for class-based components. (Always
 
 3.6 - Actions now return the new state once completed. Also converted dependencies to dev-dependencies. Reduces bundle size and prevents issues from squawk demanding a specific version of a library. This was primarily an issue with React Native.
 
+3.7 - Bugfixes
+
 # Events (deprecated)
 
 **Events have been removed**
