@@ -17,7 +17,9 @@
   },
   "author": "John Strand",
   "license": "MIT",
-  "dependencies": {},
+  "dependencies": {
+    "immer": "^5.3.6"
+  },
   "devDependencies": {
     "@types/react": "^16.8.10",
     "react": "^16.8.6",
