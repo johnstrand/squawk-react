@@ -276,6 +276,8 @@ This is used for global service classes, and for class-based components. (Always
 
 3.7 - Bugfixes
 
+4.0 - Added immer, and mutableAction functionality
+
 # Events (deprecated)
 
 **Events have been removed**
