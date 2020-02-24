@@ -9,6 +9,10 @@
         "interface-name": false,
         "space-before-function-paren": false,
         "only-arrow-functions": false,
+        "no-implicit-dependencies": [
+            true,
+            "dev"
+        ],
         "trailing-comma": [
             true,
             {
