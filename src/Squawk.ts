@@ -1,6 +1,28 @@
 import { useEffect, useRef, useState } from "react";
 
-export default function createStore<TStore>(globalState: TStore) {
+interface ReduxDevTools {
+  subscribe(callback: (message: any) => any): void;
+  init(state: any): void;
+  send(label: string, state: any): void;
+}
+
+export default function createStore<TStore>(
+  globalState: TStore,
+  useReduxDevTools: boolean = false
+) {
+  const devToolsExt = (window as any).__REDUX_DEVTOOLS_EXTENSION__;
+  const reduxDevTools: ReduxDevTools | null =
+    useReduxDevTools && devToolsExt ? devToolsExt.connect() : null;
+
+  if (reduxDevTools) {
+    reduxDevTools.subscribe(message => {
+      if (message.type === "DISPATCH" && message.state) {
+        globalState = JSON.parse(message.state);
+        internalDispatch(Object.keys(globalState));
+      }
+    });
+  }
+
   type StoreProps = keyof TStore;
   type StorePending = {
     [K in StoreProps]: number;
@@ -30,8 +52,15 @@ export default function createStore<TStore>(globalState: TStore) {
     /** Merge updated values with global state */
     globalState = { ...globalState, ...value };
 
+    if (reduxDevTools) {
+      reduxDevTools.send(Object.keys(value).join(" | "), globalState);
+    }
+
     /** Get a list of affected contexts from value object */
-    const contexts = Object.keys(value);
+    internalDispatch(Object.keys(value));
+  };
+
+  const internalDispatch = (contexts: string[]) => {
     /** Get a (non-unique) list of affected reducers */
     const reducers = contexts
       .filter(context => subscribers.has(context))
