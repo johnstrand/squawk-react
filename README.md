@@ -8,16 +8,18 @@
 
 A simple support library for managing global state in React applications, with hooks! (insert pirate joke here). Squawk is also compatible with React Native, so long as the underlying React version is up-to-date enough to support hooks.
 
-[Find it on npm](https://www.npmjs.com/package/squawk-react)
+**New**: Squawk also features an integration with Redux Dev Tools, and supports time-travelling.
+
+## [Find it on npm](https://www.npmjs.com/package/squawk-react)
 
 Or just add it to your project with `npm i --save squawk-react`
 
-Check out a simple [tutorial](./tutorial.md).
+## Check out a simple [tutorial](./tutorial.md).
 
 # API description
 
 ```typescript
-function createStore<T>(globalState: T);
+function createStore<T>(globalState: T, useReduxDevTools: boolean = false);
 
 export const {
   action,
@@ -27,12 +29,15 @@ export const {
   update,
   usePending,
   useSquawk
-} = createStore<IAppState>({
-  /* ... */
-});
+} = createStore<IAppState>(
+  {
+    /* ... */
+  },
+  true | false
+);
 ```
 
-The type T describes the root object of the store, and the argument is the initial state.
+The type T describes the root object of the store, and the first argument is the initial state. The second argument toggles integration with Redux Dev Tools
 
 Any time an event is referenced, it is one of the root properties of T (via keyof T).
 
