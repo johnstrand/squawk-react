@@ -10,7 +10,8 @@
     "declaration": true,
     "diagnostics": true,
     "listEmittedFiles": true,
-    "lib": [ "es5", "es6", "dom"]
+    "lib": ["es5", "es6", "dom"],
+    "strict": true
   },
   "exclude": [
     "node_modules",
