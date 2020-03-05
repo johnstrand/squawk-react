@@ -250,6 +250,8 @@ This is used for global service classes, and for class-based components. (Always
 
 3.7 - Bugfixes
 
+3.8 - Reworked the useSquawk method somewhat. Also added Redux Dev Tools integration
+
 # Events (deprecated)
 
 **Events have been removed**
