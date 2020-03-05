@@ -200,19 +200,25 @@ export default function createStore<TStore>(
     /** Use the pending hook, the value will be true if the number of pending operations per context is greater than 0 */
     usePending<TContext extends StoreProps>(context: TContext) {
       const [pending, setPending] = useState(!!pendingState[context]);
+      const isMounted = useRef(true);
 
       if (!pendingSubscribers.has(context as string)) {
         pendingSubscribers.set(context as string, new Set());
       }
 
-      const callback = (state: boolean) => setPending(state);
+      const callback = (state: boolean) => {
+        if (isMounted.current) {
+          setPending(state);
+        }
+      };
 
       pendingSubscribers.get(context as string)!.add(callback);
 
       useEffect(() => {
+        isMounted.current = true;
         return () => {
           pendingSubscribers.get(context as string)!.delete(callback);
-          (callback as any) = undefined;
+          isMounted.current = false;
         };
       }, [context]);
 
