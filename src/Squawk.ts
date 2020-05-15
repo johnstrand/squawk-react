@@ -161,6 +161,27 @@ export default function createStore<TStore>(
     /** Returns a specific named value from the global state */
     get,
     /** Updates the pending status of the specified context */
+    /**
+     * Updates boolean status for **pending operations** in parts of the global state
+     *
+     * @remarks
+     *
+     * `pending` are to be used within an `action`.
+     *
+     * How to use `pending` within an `action`:
+     *
+     * ```ts
+     * const foo = action(async () => {
+     *  pending(["stateVar1", "stateVar2"], true);
+     *
+     *  const stateVar1 = await api("url1");
+     *  const stateVar2 = await api("url2");
+     *
+     *  pending(["stateVar1", "stateVar2"], false);
+     *  return { stateVar1, stateVar2 }
+     * });
+     * ```
+     */
     pending<TContext extends StoreProps>(
       context: TContext | TContext[],
       state: boolean
@@ -196,8 +217,44 @@ export default function createStore<TStore>(
       );
     },
     /** Update 1 or more global state contexts. The callback receives the global state and what contexts are updated are determined by what it returns */
+    /**
+     * Update one or more parts of the global state.
+     *
+     * @remarks
+     *
+     * `update` are to be used within an `action`. It allows for state updates before an action is finished.
+     * The function receives an object that represents parts of the global state.
+     *
+     * How to use `update` within an `action`:
+     *
+     * ```ts
+     * const foo = action(() => {
+     *  ...
+     *  update({ storeVar1: "foo", storeVar2: 1});
+     *  ...
+     * });
+     * ```
+     */
     update,
     /** Use the pending hook, the value will be true if the number of pending operations per context is greater than 0 */
+    /**
+     * Subscribe to boolean updates for **async operations** in parts of the global state
+     *
+     * @remarks
+     *
+     * How to use `usePending` within a functional component component:
+     *
+     * ```tsx
+     * export const Comp = () => {
+     *  const loading = usePending("storeVar1");
+     *  ...
+     *  if(loading)
+     *      return "Loading..";
+     *  else
+     *      return <div>Content</div>
+     * }
+     * ```
+     */
     usePending<TContext extends StoreProps>(context: TContext) {
       const [pending, setPending] = useState(!!pendingState[context]);
       const isMounted = useRef(true);
@@ -225,6 +282,21 @@ export default function createStore<TStore>(
       return pending;
     },
     /** Use the squawk hook. The local state will be whatever the reducer returns. The method returns the current local state, and a method to update the global state */
+    /**
+     * Subscribes to updates in the global state to re-render a component
+     *
+     * @remarks
+     *
+     * How to use `useSquawk` within a functional component:
+     *
+     * ```tsx
+     * export const Comp = () => {
+     *  const { storeVar1, storeVar2 } = useSquawk("storeVar1", "storeVar2");
+     *  ...
+     *  return <div>{storevar1} - {storeVar2}</div>
+     * }
+     * ```
+     */
     useSquawk<TContext extends StoreProps>(
       ...contexts: TContext[]
     ): Pick<TStore, TContext> {
