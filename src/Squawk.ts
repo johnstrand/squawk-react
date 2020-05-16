@@ -6,16 +6,12 @@ interface ReduxDevTools {
   send(label: string, state: any): void;
 }
 
-export default function createStore<TStore>(
-  globalState: TStore,
-  useReduxDevTools: boolean = false
-) {
+export default function createStore<TStore>(globalState: TStore, useReduxDevTools = false) {
   const devToolsExt = (window as any).__REDUX_DEVTOOLS_EXTENSION__;
-  const reduxDevTools: ReduxDevTools | null =
-    useReduxDevTools && devToolsExt ? devToolsExt.connect() : null;
+  const reduxDevTools: ReduxDevTools | null = useReduxDevTools && devToolsExt ? devToolsExt.connect() : null;
 
   if (reduxDevTools) {
-    reduxDevTools.subscribe(message => {
+    reduxDevTools.subscribe((message) => {
       if (message.type === "DISPATCH" && message.state) {
         globalState = JSON.parse(message.state);
         internalDispatch(Object.keys(globalState));
@@ -62,9 +58,7 @@ export default function createStore<TStore>(
 
   const internalDispatch = (contexts: string[]) => {
     /** Get a (non-unique) list of affected reducers */
-    const reducers = contexts
-      .filter(context => subscribers.has(context))
-      .map(context => subscribers.get(context)!);
+    const reducers = contexts.filter((context) => subscribers.has(context)).map((context) => subscribers.get(context)!);
 
     /** Get unique reducers and invoke them */
     const invokedReducers = new Set<Reducer>();
@@ -83,7 +77,7 @@ export default function createStore<TStore>(
   /** Internal method for setting up and removing subscriptions */
   const internalSubscribe = (contexts: string[], reducer: Reducer) => {
     /** For each supplied context, set up a context->[callback] mapping */
-    contexts.forEach(context => {
+    contexts.forEach((context) => {
       if (!subscribers.has(context)) {
         subscribers.set(context, new Set());
       }
@@ -91,63 +85,35 @@ export default function createStore<TStore>(
     });
 
     /** Return a function that can be used to remove subscriptions */
-    return () =>
-      contexts.forEach(context => subscribers.get(context)!.delete(reducer));
+    return () => contexts.forEach((context) => subscribers.get(context)!.delete(reducer));
   };
 
   /** Update variants */
-  function update<TContext extends StoreProps>(
-    reducer: (value: TStore) => Pick<TStore, TContext>
-  ): void;
-  function update<TContext extends StoreProps>(
-    key: TContext,
-    value: TStore[TContext]
-  ): void;
-  function update<TContext extends StoreProps>(
-    key: TContext,
-    reducer: (value: TStore[TContext]) => TStore[TContext]
-  ): void;
-  function update<TContext extends StoreProps>(
-    value: Pick<TStore, TContext>
-  ): void;
+  function update<TContext extends StoreProps>(reducer: (value: TStore) => Pick<TStore, TContext>): void;
+  function update<TContext extends StoreProps>(key: TContext, value: TStore[TContext]): void;
+  function update<TContext extends StoreProps>(key: TContext, reducer: (value: TStore[TContext]) => TStore[TContext]): void;
+  function update<TContext extends StoreProps>(value: Pick<TStore, TContext>): void;
   function update(keyOrReducerOrValue: any, reducerOrValue?: any): void {
     if (typeof keyOrReducerOrValue === "function") {
       internalUpdate(keyOrReducerOrValue(globalState));
     } else if (typeof keyOrReducerOrValue === "string") {
       internalUpdate({
-        [keyOrReducerOrValue]:
-          typeof reducerOrValue === "function"
-            ? reducerOrValue((globalState as any)[keyOrReducerOrValue])
-            : reducerOrValue
+        [keyOrReducerOrValue]: typeof reducerOrValue === "function" ? reducerOrValue((globalState as any)[keyOrReducerOrValue]) : reducerOrValue
       });
     } else {
       internalUpdate(keyOrReducerOrValue);
     }
   }
 
-  function get<TContext extends StoreProps>(
-    context: TContext
-  ): TStore[TContext];
+  function get<TContext extends StoreProps>(context: TContext): TStore[TContext];
   function get(): Readonly<TStore>;
   function get<TContext extends StoreProps>(context?: TContext) {
     return context ? globalState[context] : globalState;
   }
 
-  function action(
-    reducer: (value: TStore) => Promise<Partial<TStore>> | Partial<TStore>
-  ): () => Promise<Readonly<TStore>>;
-  function action<T>(
-    reducer: (
-      value: TStore,
-      payload: T
-    ) => Promise<Partial<TStore>> | Partial<TStore>
-  ): (payload: T) => Promise<Readonly<TStore>>;
-  function action(
-    reducer: (
-      value: TStore,
-      payload?: any
-    ) => Promise<Partial<TStore>> | Partial<TStore>
-  ) {
+  function action(reducer: (value: TStore) => Promise<Partial<TStore>> | Partial<TStore>): () => Promise<Readonly<TStore>>;
+  function action<T>(reducer: (value: TStore, payload: T) => Promise<Partial<TStore>> | Partial<TStore>): (payload: T) => Promise<Readonly<TStore>>;
+  function action(reducer: (value: TStore, payload?: any) => Promise<Partial<TStore>> | Partial<TStore>) {
     return async (payload?: any) => {
       const value = await Promise.resolve(reducer(globalState, payload));
       internalUpdate(value);
@@ -182,10 +148,7 @@ export default function createStore<TStore>(
      * });
      * ```
      */
-    pending<TContext extends StoreProps>(
-      context: TContext | TContext[],
-      state: boolean
-    ) {
+    pending<TContext extends StoreProps>(context: TContext | TContext[], state: boolean) {
       if (!Array.isArray(context)) {
         context = [context];
       }
@@ -202,19 +165,12 @@ export default function createStore<TStore>(
         if (!pendingSubscribers.has(ctx as string)) {
           return;
         }
-        pendingSubscribers
-          .get(ctx as string)!
-          .forEach(callback => callback(pendingState[ctx] > 0));
+        pendingSubscribers.get(ctx as string)!.forEach((callback) => callback(pendingState[ctx] > 0));
       }
     },
     /** Sets up a subscription for a single global state context */
-    subscribe<TContext extends StoreProps>(
-      context: TContext,
-      callback: Reducer<TStore[TContext]>
-    ): () => void {
-      return internalSubscribe([context as string], (state: TStore) =>
-        callback(state[context])
-      );
+    subscribe<TContext extends StoreProps>(context: TContext, callback: Reducer<TStore[TContext]>): () => void {
+      return internalSubscribe([context as string], (state: TStore) => callback(state[context]));
     },
     /** Update 1 or more global state contexts. The callback receives the global state and what contexts are updated are determined by what it returns */
     /**
@@ -297,9 +253,7 @@ export default function createStore<TStore>(
      * }
      * ```
      */
-    useSquawk<TContext extends StoreProps>(
-      ...contexts: TContext[]
-    ): Pick<TStore, TContext> {
+    useSquawk<TContext extends StoreProps>(...contexts: TContext[]): Pick<TStore, TContext> {
       /** context list should never change */
       const ctx = useRef(contexts);
       /** Keep track if the component is mounted */
@@ -307,16 +261,11 @@ export default function createStore<TStore>(
 
       /** Define reducer with useRef to guarantee stable identity */
       const localReducer = useRef((state: TStore) => {
-        return ctx.current.reduce(
-          (acc, cur) => ({ ...acc, ...{ [cur]: state[cur] } }),
-          {}
-        ) as Pick<TStore, TContext>;
+        return ctx.current.reduce((acc, cur) => ({ ...acc, ...{ [cur]: state[cur] } }), {}) as Pick<TStore, TContext>;
       });
 
       /** Initialize useState with the local state */
-      const [localState, localDispatcher] = useState(
-        localReducer.current(globalState)
-      );
+      const [localState, localDispatcher] = useState(localReducer.current(globalState));
 
       /** Define subscribe via callback to guarantee stable identity */
       const subscriber = useRef((value: any) => {
@@ -327,9 +276,7 @@ export default function createStore<TStore>(
       });
 
       /** Set up subscriptions for the contexts in the local state */
-      const unsubscribe = useRef(
-        internalSubscribe(ctx.current as string[], subscriber.current)
-      );
+      const unsubscribe = useRef(internalSubscribe(ctx.current as string[], subscriber.current));
 
       useEffect(() => {
         isMounted.current = true;
