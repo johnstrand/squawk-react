@@ -261,7 +261,11 @@ export default function createStore<TStore>(globalState: TStore, useReduxDevTool
 
       /** Define reducer with useRef to guarantee stable identity */
       const localReducer = useRef((state: TStore) => {
-        return ctx.current.reduce((acc, cur) => ({ ...acc, ...{ [cur]: state[cur] } }), {}) as Pick<TStore, TContext>;
+        const reducedState: { [key: string]: unknown } = {};
+        // eslint-disable-next-line immutable/no-mutation
+        ctx.current.forEach((context) => (reducedState[context as string] = state[context]));
+
+        return reducedState as Pick<TStore, TContext>;
       });
 
       /** Initialize useState with the local state */
