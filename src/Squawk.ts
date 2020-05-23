@@ -113,19 +113,9 @@ export default function createStore<TStore>(globalState: TStore, useReduxDevTool
 
   type StoreUpdate<T extends unknown[]> = (store: TStore, ...args: T) => Partial<TStore> | Promise<Partial<TStore>>;
 
-  function attach<T extends unknown[]>(resolver: StoreUpdate<T>) {
+  function action<T extends unknown[]>(resolver: StoreUpdate<T>) {
     return async (...args: T) => {
       const value = await Promise.resolve(resolver(globalState, ...args));
-      internalUpdate(value);
-      return globalState;
-    };
-  }
-
-  function action(reducer: (value: TStore) => Promise<Partial<TStore>> | Partial<TStore>): () => Promise<Readonly<TStore>>;
-  function action<T>(reducer: (value: TStore, payload: T) => Promise<Partial<TStore>> | Partial<TStore>): (payload: T) => Promise<Readonly<TStore>>;
-  function action(reducer: (value: TStore, payload?: any) => Promise<Partial<TStore>> | Partial<TStore>) {
-    return async (payload?: any) => {
-      const value = await Promise.resolve(reducer(globalState, payload));
       internalUpdate(value);
       return globalState;
     };
@@ -134,7 +124,6 @@ export default function createStore<TStore>(globalState: TStore, useReduxDevTool
   return {
     /** Helper function to create "prebaked" update methods */
     action,
-    attach,
     /** Returns a specific named value from the global state */
     get,
     /** Updates the pending status of the specified context */
