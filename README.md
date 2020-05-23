@@ -21,15 +21,7 @@ Or just add it to your project with `npm i --save squawk-react`
 ```typescript
 function createStore<T>(globalState: T, useReduxDevTools: boolean = false);
 
-export const {
-  action,
-  get,
-  pending,
-  subscribe,
-  update,
-  usePending,
-  useSquawk
-} = createStore<IAppState>(
+export const { action, get, pending, subscribe, update, usePending, useSquawk } = createStore<IAppState>(
   {
     /* ... */
   },
@@ -62,12 +54,15 @@ Sets up a hook for the specified properties, and returns an object with the curr
 ## action
 
 ```typescript
-action<TPayload>(reducer: (store: T, payload: TPayload) => Partial<T>)
-action(reducer: (value: TStore) => Promise<Partial<TStore>> | Partial<TStore>)
+action(reducer: (store: T, ...payload: any[]) => Promise<Partial<TStore>> | Partial<TStore>)
 
-const updateProp = action<string>((store, payload) => {
+const updateProp = action((store, payload: string) => {
     return { prop: payload };
 });
+
+const updateTwoProps = action((store, payload1: number, payload2: string) => {
+  return { prop1: payload1, prop2: payload2 };
+})
 
 const incrementProp = action(store => {
     return { someProp: store.someProp + 1 };
@@ -79,15 +74,14 @@ updateProp("the new value");
 incrementProp();
 ```
 
-Creates a reusable action to update parts or all of the global state. The function has two variants:
+Creates a reusable action to update parts or all of the global state. The first parameter passed in will always be the current state, followed by 0 to many optional parameters. The returned action will copy the parameters and their types from the reducer, and have an identical signature.
 
-1. takes a callback which will accept the current store state, and a value of a specified type, and returns either a Partial<T>, or a Promise<Partial<T>> of the global state.
-2. takes a callback which will accept only the current store state, and returns either a Partial<T>, or a Promise<Partial<T>> of the global state.
+_Note: Earlier version required the user to create an object to pass more than one parameter, this new version allows for an arbitrary number of parameters_
 
 If the action callback returns a promise it will be automatically awaited, and errors will be thrown as exceptions. As such, an action can be made async:
 
 ```typescript
-const updateRemoteValue = action<Foo>(async (store, foo) => {
+const updateRemoteValue = action(async (store, foo: Foo) => {
     const createdFoo = await fetch(...);
 
     return { foos: [store.foos, ...createdFoo] };
@@ -128,9 +122,9 @@ update(key, value);
 update(key, reducer);
 update(value);
 
-update(state => ({ myProp: state.myProp + 1, myOtherProp: true }));
+update((state) => ({ myProp: state.myProp + 1, myOtherProp: true }));
 update("myProp", 1);
-update("myProp", myProp => myProp + 1);
+update("myProp", (myProp) => myProp + 1);
 update({ myProp: 1, myOtherProp: true });
 ```
 
@@ -183,7 +177,7 @@ Fetches the current value of the specified state property, or the entire global 
 ```typescript
 subscribe(prop, callback);
 
-const unsubMyEvent = subscribe("myProp", value => {
+const unsubMyEvent = subscribe("myProp", (value) => {
   /* ... */
 });
 /*
