@@ -20,9 +20,6 @@ export default function createStore<TStore>(globalState: TStore, useReduxDevTool
   }
 
   type StoreProps = keyof TStore;
-  type StorePending = {
-    [K in StoreProps]: number;
-  };
 
   /** Type alias for reducers: (value: T) => any */
   type Reducer<T = any> = (value: T) => any;
@@ -31,8 +28,8 @@ export default function createStore<TStore>(globalState: TStore, useReduxDevTool
   const subscribers = new Map<string, Set<Reducer>>();
 
   /** Map that links individual keys in TStore to the pending operation callbacks */
-  const pendingState: StorePending = ({} as unknown) as StorePending;
-  const pendingSubscribers = new Map<string, Set<(state: boolean) => void>>();
+  const pendingState = new Map<StoreProps, number>();
+  const pendingSubscribers = new Map<StoreProps, Set<(state: boolean) => void>>();
 
   /** Actual update method, handles resolving subscribers and reducers */
   const internalUpdate = (value: any) => {
@@ -149,23 +146,20 @@ export default function createStore<TStore>(globalState: TStore, useReduxDevTool
      * ```
      */
     pending<TContext extends StoreProps>(context: TContext | TContext[], state: boolean) {
-      if (!Array.isArray(context)) {
-        context = [context];
-      }
-
-      for (const ctx of context) {
-        const newValue = (pendingState[ctx] || 0) + (state ? 1 : -1);
+      const contextList = Array.isArray(context) ? context : [context];
+      for (const ctx of contextList) {
+        const newValue = (pendingState.get(ctx) ?? 0) + (state ? 1 : -1);
         if (newValue < 0) {
           throw Error(`Too many calls to pending("${ctx}", false)`);
         }
-        pendingState[ctx] = newValue;
+        pendingState.set(ctx, newValue);
       }
 
-      for (const ctx of context) {
-        if (!pendingSubscribers.has(ctx as string)) {
+      for (const ctx of contextList) {
+        if (!pendingSubscribers.has(ctx)) {
           return;
         }
-        pendingSubscribers.get(ctx as string)!.forEach((callback) => callback(pendingState[ctx] > 0));
+        pendingSubscribers.get(ctx)!.forEach((callback) => callback((pendingState.get(ctx) ?? 0) > 0));
       }
     },
     /** Sets up a subscription for a single global state context */
@@ -212,11 +206,11 @@ export default function createStore<TStore>(globalState: TStore, useReduxDevTool
      * ```
      */
     usePending<TContext extends StoreProps>(context: TContext) {
-      const [pending, setPending] = useState(!!pendingState[context]);
+      const [pending, setPending] = useState(!!pendingState.get(context));
       const isMounted = useRef(true);
 
-      if (!pendingSubscribers.has(context as string)) {
-        pendingSubscribers.set(context as string, new Set());
+      if (!pendingSubscribers.has(context)) {
+        pendingSubscribers.set(context, new Set());
       }
 
       const callback = (state: boolean) => {
@@ -225,12 +219,12 @@ export default function createStore<TStore>(globalState: TStore, useReduxDevTool
         }
       };
 
-      pendingSubscribers.get(context as string)!.add(callback);
+      pendingSubscribers.get(context)!.add(callback);
 
       useEffect(() => {
         isMounted.current = true;
         return () => {
-          pendingSubscribers.get(context as string)!.delete(callback);
+          pendingSubscribers.get(context)!.delete(callback);
           isMounted.current = false;
         };
       }, [context]);
