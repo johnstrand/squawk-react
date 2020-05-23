@@ -56,11 +56,11 @@ Next, create `Actions.ts` in `src/`, and paste the following in the file:
 ```typescript
 import { action } from "./Store";
 
-export const increment = action(state => {
+export const increment = action((state) => {
   return { count: state.count + 1 };
 });
 
-export const decrement = action(state => {
+export const decrement = action((state) => {
   // Prevent value to go below zero
   return { count: Math.max(state.count - 1, 0) };
 });
@@ -69,12 +69,11 @@ export const reset = action(() => {
   return { count: 0 };
 });
 
-export const addItem = action<string>((state, text) => {
+export const addItem = action((state, text: string) => {
   // This can be ignored in the context of this tutorial, but
   // it searches the list of items for the highest ID (and defaults to 0)
   // and adds 1 to it for the next ID.
-  const id =
-    state.items.reduce((acc, cur) => (cur.id > acc ? cur.id : acc), 0) + 1;
+  const id = state.items.reduce((acc, cur) => (cur.id > acc ? cur.id : acc), 0) + 1;
   // Using a spread operator, add the new item to the end of the list
   // Why not use push? Arrays in JavaScript are reference types,
   // and push won't change the reference, which means that JavaScript
@@ -192,7 +191,7 @@ const AddItem = () => {
 
   return (
     <div>
-      <input value={text} onChange={e => setText(e.currentTarget.value)} />{" "}
+      <input value={text} onChange={(e) => setText(e.currentTarget.value)} />{" "}
       <button disabled={!text} onClick={add}>
         Add
       </button>
@@ -221,7 +220,7 @@ const ItemList = () => {
 
   return (
     <ul>
-      {items.map(item => (
+      {items.map((item) => (
         <li key={item.id}>{item.text}</li>
       ))}
     </ul>
@@ -249,11 +248,11 @@ Return to `Actions.ts` and modify it to look like this:
 ```tsx
 import { action } from "./Store";
 
-export const increment = action(state => {
+export const increment = action((state) => {
   return { count: state.count + 1 };
 });
 
-export const decrement = action(state => {
+export const decrement = action((state) => {
   // Prevent value to go below zero
   return { count: Math.max(state.count - 1, 0) };
 });
@@ -263,12 +262,11 @@ export const reset = action(() => {
 });
 
 // This action is now marked async
-export const addItem = action<string>(async (state, text) => {
+export const addItem = action(async (state, text: string) => {
   // This can be ignored in the context of this tutorial, but
   // it searches the list of items for the highest ID (and defaults to 0)
   // and adds 1 to it for the next ID.
-  const id =
-    state.items.reduce((acc, cur) => (cur.id > acc ? cur.id : acc), 0) + 1;
+  const id = state.items.reduce((acc, cur) => (cur.id > acc ? cur.id : acc), 0) + 1;
 
   // Wait 1 second
   await delay(1000);
@@ -285,12 +283,12 @@ export const addItem = action<string>(async (state, text) => {
 // is just used to simulate a delay due to waiting
 // for a back end service
 const delay = (ms: number) =>
-  new Promise<void>(resolve => {
+  new Promise<void>((resolve) => {
     window.setInterval(resolve, ms);
   });
 ```
 
-Note the changes, `action<string>((state, text)) =>` is now `action<string>(async (state, text)) =>`. Now you may use the `await` keyword within the action. This allows an action to perform asynchronous operations without the caller knowing the difference.
+Note the changes, `action((state, text: string)) =>` is now `action(async (state, text: string)) =>`. Now you may use the `await` keyword within the action. This allows an action to perform asynchronous operations without the caller knowing the difference.
 
 If you enter some text and press "Add" now, you'll find that it takes a second before the new item is added and the input field resets. This works even though the `AddItem` component hasn't been changed at all. As promised, Squawk silently handles the operations for you.
 
@@ -319,11 +317,7 @@ const AddItem = () => {
 
   return (
     <div>
-      <input
-        value={text}
-        onChange={e => setText(e.currentTarget.value)}
-        disabled={loading}
-      />{" "}
+      <input value={text} onChange={(e) => setText(e.currentTarget.value)} disabled={loading} />{" "}
       <button disabled={!text || loading} onClick={add}>
         {loading ? "Loading..." : "Add"}
       </button>
