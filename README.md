@@ -246,6 +246,8 @@ This is used for global service classes, and for class-based components. (Always
 
 3.8 - Reworked the useSquawk method somewhat. Also added Redux Dev Tools integration
 
+3.9 - Reworked action signature, as well as some performance improvements
+
 # Events (deprecated)
 
 **Events have been removed**
