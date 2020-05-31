@@ -117,20 +117,16 @@ These methods exist to help with specific scenarios, and should be used in selec
 ## update
 
 ```typescript
-update(reducer);
-update(key, value);
-update(key, reducer);
 update(value);
 
-update((state) => ({ myProp: state.myProp + 1, myOtherProp: true }));
-update("myProp", 1);
-update("myProp", (myProp) => myProp + 1);
 update({ myProp: 1, myOtherProp: true });
 ```
 
-Updates one or more property values, by one of four ways. Two variants to handle when the new value depends on the previous value, and two variants that will simply overwrite the old value. Two variants that allow for updating more than one property, and two that only allows for updating a single property.
+Updates one or more property values, by either replacing all or parts of the current state in a single operation.
 
-One use case for update is to update a property before an async action awaits an operation, such as clearing a list before re-populating.
+One use case for update is to update a property before an async action awaits an operation, such as clearing a list before re-populating. Normally, all state updates should happen through actions, but sometimes there's a need to update the store while an action is executing.
+
+**Note: There were previously 3 other variants to update, they have been deprecated and removed. Use actions to cover those use-cases instead**
 
 ## pending
 
