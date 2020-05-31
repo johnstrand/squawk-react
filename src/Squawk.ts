@@ -1,65 +1,41 @@
 import { useEffect, useRef, useState } from "react";
 
-interface ReduxDevTools {
-  subscribe(callback: (message: any) => any): void;
-  init(state: any): void;
-  send(label: string, state: any): void;
+interface ReduxDevTools<T> {
+  subscribe(callback: (message: { type: string; state: string }) => void): void;
+  init(state: T): void;
+  send(label: string, state: T): void;
 }
 
-export default function createStore<TStore>(globalState: TStore, useReduxDevTools = false) {
-  const devToolsExt = (window as any).__REDUX_DEVTOOLS_EXTENSION__;
-  const reduxDevTools: ReduxDevTools | null = useReduxDevTools && devToolsExt ? devToolsExt.connect() : null;
+interface WindowWithExtension<T> extends Window {
+  __REDUX_DEVTOOLS_EXTENSION__?: {
+    connect(): ReduxDevTools<T>;
+  };
+}
 
-  if (reduxDevTools) {
-    reduxDevTools.subscribe((message) => {
-      if (message.type === "DISPATCH" && message.state) {
-        globalState = JSON.parse(message.state);
-        internalDispatch(Object.keys(globalState));
-      }
-    });
-  }
+export default function createStore<TStore>(initialState: TStore, useReduxDevTools = false) {
+  // eslint-disable-next-line immutable/no-let
+  let globalState = { ...initialState };
 
   type StoreProps = keyof TStore;
 
   /** Type alias for reducers: (value: T) => any */
-  type Reducer<T = any> = (value: T) => any;
+  type Callback<T = TStore> = (value: T) => void;
 
   /** Map that links individual keys in TStore to the reducer callbacks */
-  const subscribers = new Map<string, Set<Reducer>>();
+  const subscribers = new Map<string, Set<Callback>>();
 
   /** Map that links individual keys in TStore to the pending operation callbacks */
   const pendingState = new Map<StoreProps, number>();
-  const pendingSubscribers = new Map<StoreProps, Set<(state: boolean) => void>>();
-
-  /** Actual update method, handles resolving subscribers and reducers */
-  const internalUpdate = (value: any) => {
-    /** If we have received a function, evaluate it before proceeding */
-    if (typeof value === "function") {
-      value = value();
-    }
-    /** Make sure that value is not null, and that it is an object */
-    if (!value || typeof value !== "object") {
-      return;
-    }
-
-    /** Merge updated values with global state */
-    globalState = { ...globalState, ...value };
-
-    if (reduxDevTools) {
-      reduxDevTools.send(Object.keys(value).join(" | "), globalState);
-    }
-
-    /** Get a list of affected contexts from value object */
-    internalDispatch(Object.keys(value));
-  };
+  const pendingSubscribers = new Map<StoreProps, Set<Callback<boolean>>>();
 
   const internalDispatch = (contexts: string[]) => {
     /** Get a (non-unique) list of affected reducers */
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const reducers = contexts.filter((context) => subscribers.has(context)).map((context) => subscribers.get(context)!);
 
-    /** Get unique reducers and invoke them */
-    const invokedReducers = new Set<Reducer>();
-    const reduceEach = (reducer: Reducer) => {
+    /** Ensure that reducers are invoked only once */
+    const invokedReducers = new Set<Callback>();
+    const reduceEach = (reducer: Callback) => {
       if (invokedReducers.has(reducer)) {
         return;
       }
@@ -71,35 +47,59 @@ export default function createStore<TStore>(globalState: TStore, useReduxDevTool
     }
   };
 
+  /** Set up Redux Dev tools (if enabled) */
+  const devToolsExt = (window as WindowWithExtension<TStore>).__REDUX_DEVTOOLS_EXTENSION__;
+  const reduxDevTools = useReduxDevTools && devToolsExt ? devToolsExt.connect() : null;
+
+  if (reduxDevTools) {
+    reduxDevTools.subscribe((message) => {
+      if (message.type === "DISPATCH" && message.state) {
+        globalState = JSON.parse(message.state);
+        internalDispatch(Object.keys(globalState));
+      }
+    });
+  }
+
+  /** Actual update method, handles resolving subscribers and reducers */
+  const internalUpdate = (value: Partial<TStore> | (() => Partial<TStore>)) => {
+    /** If we have received a function, evaluate it before proceeding */
+    const updatedValues = typeof value === "function" ? value() : value;
+
+    /** Make sure that value is not null, and that it is an object */
+    if (!updatedValues || typeof updatedValues !== "object") {
+      return;
+    }
+
+    /** Merge updated values with global state */
+    globalState = { ...globalState, ...updatedValues };
+
+    if (reduxDevTools) {
+      reduxDevTools.send(Object.keys(value).join(" | "), globalState);
+    }
+
+    /** Get a list of affected contexts from value object */
+    internalDispatch(Object.keys(updatedValues));
+  };
+
   /** Internal method for setting up and removing subscriptions */
-  const internalSubscribe = (contexts: string[], reducer: Reducer) => {
+  const internalSubscribe = (contexts: string[], reducer: Callback) => {
     /** For each supplied context, set up a context->[callback] mapping */
     contexts.forEach((context) => {
       if (!subscribers.has(context)) {
         subscribers.set(context, new Set());
       }
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       subscribers.get(context)!.add(reducer);
     });
 
     /** Return a function that can be used to remove subscriptions */
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     return () => contexts.forEach((context) => subscribers.get(context)!.delete(reducer));
   };
 
   /** Update variants */
-  function update<TContext extends StoreProps>(reducer: (value: TStore) => Pick<TStore, TContext>): void;
-  function update<TContext extends StoreProps>(key: TContext, value: TStore[TContext]): void;
-  function update<TContext extends StoreProps>(key: TContext, reducer: (value: TStore[TContext]) => TStore[TContext]): void;
-  function update<TContext extends StoreProps>(value: Pick<TStore, TContext>): void;
-  function update(keyOrReducerOrValue: any, reducerOrValue?: any): void {
-    if (typeof keyOrReducerOrValue === "function") {
-      internalUpdate(keyOrReducerOrValue(globalState));
-    } else if (typeof keyOrReducerOrValue === "string") {
-      internalUpdate({
-        [keyOrReducerOrValue]: typeof reducerOrValue === "function" ? reducerOrValue((globalState as any)[keyOrReducerOrValue]) : reducerOrValue
-      });
-    } else {
-      internalUpdate(keyOrReducerOrValue);
-    }
+  function update<TContext extends StoreProps>(value: Pick<TStore, TContext>) {
+    internalUpdate(value as Partial<TStore>);
   }
 
   function get<TContext extends StoreProps>(context: TContext): TStore[TContext];
@@ -159,11 +159,12 @@ export default function createStore<TStore>(globalState: TStore, useReduxDevTool
         if (!pendingSubscribers.has(ctx)) {
           return;
         }
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         pendingSubscribers.get(ctx)!.forEach((callback) => callback((pendingState.get(ctx) ?? 0) > 0));
       }
     },
     /** Sets up a subscription for a single global state context */
-    subscribe<TContext extends StoreProps>(context: TContext, callback: Reducer<TStore[TContext]>): () => void {
+    subscribe<TContext extends StoreProps>(context: TContext, callback: Callback<TStore[TContext]>): () => void {
       return internalSubscribe([context as string], (state: TStore) => callback(state[context]));
     },
     /** Update 1 or more global state contexts. The callback receives the global state and what contexts are updated are determined by what it returns */
@@ -219,12 +220,16 @@ export default function createStore<TStore>(globalState: TStore, useReduxDevTool
         }
       };
 
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       pendingSubscribers.get(context)!.add(callback);
 
       useEffect(() => {
+        // eslint-disable-next-line immutable/no-mutation
         isMounted.current = true;
         return () => {
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           pendingSubscribers.get(context)!.delete(callback);
+          // eslint-disable-next-line immutable/no-mutation
           isMounted.current = false;
         };
       }, [context]);
@@ -266,7 +271,7 @@ export default function createStore<TStore>(globalState: TStore, useReduxDevTool
       const [localState, localDispatcher] = useState(localReducer.current(globalState));
 
       /** Define subscribe via callback to guarantee stable identity */
-      const subscriber = useRef((value: any) => {
+      const subscriber = useRef((value: TStore) => {
         if (isMounted.current) {
           /** Filter global state through reducer to get new local state */
           localDispatcher(localReducer.current(value));
@@ -277,9 +282,11 @@ export default function createStore<TStore>(globalState: TStore, useReduxDevTool
       const unsubscribe = useRef(internalSubscribe(ctx.current as string[], subscriber.current));
 
       useEffect(() => {
+        // eslint-disable-next-line immutable/no-mutation
         isMounted.current = true;
         const unsubscribeRef = unsubscribe.current;
         return () => {
+          // eslint-disable-next-line immutable/no-mutation
           isMounted.current = false;
           unsubscribeRef();
         };
