@@ -33,18 +33,18 @@ export default function createStore<TStore>(initialState: TStore, useReduxDevToo
   type Callback<T = TStore> = (value: T) => void;
 
   /** Map that links individual keys in TStore to the reducer callbacks */
-  const subscribers = new Map<string, Set<Callback>>();
+  const subscribers = new Map<StoreProp, Set<Callback>>();
 
   /** Ensure that subscriber Map contains all contexts */
-  for (const context in Object.keys(initialState) as StoreProp[]) {
-    subscribers.set(context, new Set());
+  for (const context in Object.keys(initialState)) {
+    subscribers.set(context as StoreProp, new Set());
   }
 
   /** Map that links individual keys in TStore to the pending operation callbacks */
   const pendingState = new Map<StoreProp, number>();
   const pendingSubscribers = new Map<StoreProp, Set<Callback<boolean>>>();
 
-  const internalDispatch = (contexts: string[]) => {
+  const internalDispatch = (contexts: StoreProp[]) => {
     /** Get a (non-unique) list of affected reducers */
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const reducers = contexts.map((context) => subscribers.get(context)!);
@@ -72,7 +72,7 @@ export default function createStore<TStore>(initialState: TStore, useReduxDevToo
     reduxDevTools.subscribe((message) => {
       if (message.type === "DISPATCH" && message.state) {
         globalState = JSON.parse(message.state);
-        internalDispatch(Object.keys(globalState));
+        internalDispatch(Object.keys(globalState) as StoreProp[]);
       }
     });
   }
@@ -95,11 +95,11 @@ export default function createStore<TStore>(initialState: TStore, useReduxDevToo
     }
 
     /** Get a list of affected contexts from value object */
-    internalDispatch(Object.keys(updatedValues));
+    internalDispatch(Object.keys(updatedValues) as StoreProp[]);
   };
 
   /** Internal method for setting up and removing subscriptions */
-  const internalSubscribe = (contexts: string[], reducer: Callback) => {
+  const internalSubscribe = (contexts: StoreProp[], reducer: Callback) => {
     /** For each supplied context, set up a context->[callback] mapping */
     contexts.forEach((context) => {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -199,7 +199,7 @@ export default function createStore<TStore>(initialState: TStore, useReduxDevToo
     },
     /** Sets up a subscription for a single global state context */
     subscribe<TContext extends StoreProp>(context: TContext, callback: Callback<TStore[TContext]>): () => void {
-      return internalSubscribe([context as string], (state: TStore) => callback(state[context]));
+      return internalSubscribe([context], (state: TStore) => callback(state[context]));
     },
     /** Update 1 or more global state contexts. The callback receives the global state and what contexts are updated are determined by what it returns */
     /**
@@ -289,7 +289,7 @@ export default function createStore<TStore>(initialState: TStore, useReduxDevToo
       });
 
       /** Set up subscriptions for the contexts in the local state */
-      const unsubscribe = useRef(internalSubscribe(contexts as string[], subscriber));
+      const unsubscribe = useRef(internalSubscribe(contexts, subscriber));
 
       useEffect(() => {
         const unsubscribeRef = unsubscribe.current;
