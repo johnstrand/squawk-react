@@ -118,6 +118,26 @@ export default function createStore<TStore>(initialState: TStore, useReduxDevToo
     };
   }
 
+  function useIfMounted<T extends unknown[]>(action: (...args: T) => void) {
+    /** Keep track if the component is mounted */
+    const isMounted = useRef(true);
+
+    useEffect(() => {
+      // eslint-disable-next-line immutable/no-mutation
+      isMounted.current = true;
+      return () => {
+        // eslint-disable-next-line immutable/no-mutation
+        isMounted.current = false;
+      };
+    }, []);
+
+    return useRef((...args: T) => {
+      if (isMounted.current) {
+        action(...args);
+      }
+    }).current;
+  }
+
   return {
     /** Helper function to create "prebaked" update methods */
     action,
@@ -208,31 +228,24 @@ export default function createStore<TStore>(initialState: TStore, useReduxDevToo
      */
     usePending<TContext extends StoreProps>(context: TContext) {
       const [pending, setPending] = useState(!!pendingState.get(context));
-      const isMounted = useRef(true);
 
       if (!pendingSubscribers.has(context)) {
         pendingSubscribers.set(context, new Set());
       }
 
-      const callback = (state: boolean) => {
-        if (isMounted.current) {
-          setPending(state);
-        }
-      };
+      const callback = useIfMounted((state: boolean) => {
+        setPending(state);
+      });
 
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       pendingSubscribers.get(context)!.add(callback);
 
       useEffect(() => {
-        // eslint-disable-next-line immutable/no-mutation
-        isMounted.current = true;
         return () => {
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           pendingSubscribers.get(context)!.delete(callback);
-          // eslint-disable-next-line immutable/no-mutation
-          isMounted.current = false;
         };
-      }, [context]);
+      }, [context, callback]);
 
       return pending;
     },
@@ -253,41 +266,20 @@ export default function createStore<TStore>(initialState: TStore, useReduxDevToo
      * ```
      */
     useSquawk<TContext extends StoreProps>(...contexts: TContext[]): Pick<TStore, TContext> {
-      /** context list should never change */
-      const ctx = useRef(contexts);
-      /** Keep track if the component is mounted */
-      const isMounted = useRef(true);
-
-      /** Define reducer with useRef to guarantee stable identity */
-      const localReducer = useRef((state: TStore) => {
-        const reducedState: { [key: string]: unknown } = {};
-        // eslint-disable-next-line immutable/no-mutation
-        ctx.current.forEach((context) => (reducedState[context as string] = state[context]));
-
-        return reducedState as Pick<TStore, TContext>;
-      });
-
       /** Initialize useState with the local state */
-      const [localState, localDispatcher] = useState(localReducer.current(globalState));
+      const [localState, localDispatcher] = useState(globalState);
 
       /** Define subscribe via callback to guarantee stable identity */
-      const subscriber = useRef((value: TStore) => {
-        if (isMounted.current) {
-          /** Filter global state through reducer to get new local state */
-          localDispatcher(localReducer.current(value));
-        }
+      const subscriber = useIfMounted((value: TStore) => {
+        localDispatcher(value);
       });
 
       /** Set up subscriptions for the contexts in the local state */
-      const unsubscribe = useRef(internalSubscribe(ctx.current as string[], subscriber.current));
+      const unsubscribe = useRef(internalSubscribe(contexts as string[], subscriber));
 
       useEffect(() => {
-        // eslint-disable-next-line immutable/no-mutation
-        isMounted.current = true;
         const unsubscribeRef = unsubscribe.current;
         return () => {
-          // eslint-disable-next-line immutable/no-mutation
-          isMounted.current = false;
           unsubscribeRef();
         };
       }, [unsubscribe]);
