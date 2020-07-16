@@ -10,6 +10,8 @@ A simple support library for managing global state in React applications, with h
 
 **New**: Squawk also features an integration with Redux Dev Tools, and supports time-travelling.
 
+**Note**: Starting with 4.0, Squawk targets ES2017. If you have to support a browser that doesn't support ES2017, you'll have to use appropriate polyfills.
+
 ## [Find it on npm](https://www.npmjs.com/package/squawk-react)
 
 Or just add it to your project with `npm i --save squawk-react`
@@ -243,6 +245,8 @@ This is used for global service classes, and for class-based components. (Always
 3.8 - Reworked the useSquawk method somewhat. Also added Redux Dev Tools integration
 
 3.9 - Reworked action signature, as well as some performance improvements
+
+4.0 - Changed ES target to ES2017, to generate more clean code
 
 # Events (deprecated)
 
