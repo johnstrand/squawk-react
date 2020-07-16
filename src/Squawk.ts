@@ -12,11 +12,22 @@ interface WindowWithExtension<T> extends Window {
   };
 }
 
+/**
+ * Initializes the store
+ *
+ * @remarks
+ *
+ * **Note**: Ensure that the **ENTIRE** state is initialized on first call, or you will faces issues with crashes
+ */
 export default function createStore<TStore>(initialState: TStore, useReduxDevTools = false) {
+  if (typeof initialState !== "object") {
+    throw Error(`Store must be an object, found ${typeof initialState}`);
+  }
+
   // eslint-disable-next-line immutable/no-let
   let globalState = { ...initialState };
 
-  type StoreProps = keyof TStore;
+  type StoreProp = keyof TStore;
 
   /** Type alias for reducers: (value: T) => any */
   type Callback<T = TStore> = (value: T) => void;
@@ -24,14 +35,19 @@ export default function createStore<TStore>(initialState: TStore, useReduxDevToo
   /** Map that links individual keys in TStore to the reducer callbacks */
   const subscribers = new Map<string, Set<Callback>>();
 
+  /** Ensure that subscriber Map contains all contexts */
+  for (const context in Object.keys(initialState) as StoreProp[]) {
+    subscribers.set(context, new Set());
+  }
+
   /** Map that links individual keys in TStore to the pending operation callbacks */
-  const pendingState = new Map<StoreProps, number>();
-  const pendingSubscribers = new Map<StoreProps, Set<Callback<boolean>>>();
+  const pendingState = new Map<StoreProp, number>();
+  const pendingSubscribers = new Map<StoreProp, Set<Callback<boolean>>>();
 
   const internalDispatch = (contexts: string[]) => {
     /** Get a (non-unique) list of affected reducers */
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const reducers = contexts.filter((context) => subscribers.has(context)).map((context) => subscribers.get(context)!);
+    const reducers = contexts.map((context) => subscribers.get(context)!);
 
     /** Ensure that reducers are invoked only once */
     const invokedReducers = new Set<Callback>();
@@ -42,6 +58,7 @@ export default function createStore<TStore>(initialState: TStore, useReduxDevToo
       invokedReducers.add(reducer);
       reducer(globalState);
     };
+
     for (const list of reducers) {
       list.forEach(reduceEach);
     }
@@ -85,9 +102,6 @@ export default function createStore<TStore>(initialState: TStore, useReduxDevToo
   const internalSubscribe = (contexts: string[], reducer: Callback) => {
     /** For each supplied context, set up a context->[callback] mapping */
     contexts.forEach((context) => {
-      if (!subscribers.has(context)) {
-        subscribers.set(context, new Set());
-      }
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       subscribers.get(context)!.add(reducer);
     });
@@ -98,13 +112,13 @@ export default function createStore<TStore>(initialState: TStore, useReduxDevToo
   };
 
   /** Update variants */
-  function update<TContext extends StoreProps>(value: Pick<TStore, TContext>) {
+  function update<TContext extends StoreProp>(value: Pick<TStore, TContext>) {
     internalUpdate(value as Partial<TStore>);
   }
 
-  function get<TContext extends StoreProps>(context: TContext): TStore[TContext];
+  function get<TContext extends StoreProp>(context: TContext): TStore[TContext];
   function get(): Readonly<TStore>;
-  function get<TContext extends StoreProps>(context?: TContext) {
+  function get<TContext extends StoreProp>(context?: TContext) {
     return context ? globalState[context] : globalState;
   }
 
@@ -165,7 +179,7 @@ export default function createStore<TStore>(initialState: TStore, useReduxDevToo
      * });
      * ```
      */
-    pending<TContext extends StoreProps>(context: TContext | TContext[], state: boolean) {
+    pending<TContext extends StoreProp>(context: TContext | TContext[], state: boolean) {
       const contextList = Array.isArray(context) ? context : [context];
       for (const ctx of contextList) {
         const newValue = (pendingState.get(ctx) ?? 0) + (state ? 1 : -1);
@@ -184,7 +198,7 @@ export default function createStore<TStore>(initialState: TStore, useReduxDevToo
       }
     },
     /** Sets up a subscription for a single global state context */
-    subscribe<TContext extends StoreProps>(context: TContext, callback: Callback<TStore[TContext]>): () => void {
+    subscribe<TContext extends StoreProp>(context: TContext, callback: Callback<TStore[TContext]>): () => void {
       return internalSubscribe([context as string], (state: TStore) => callback(state[context]));
     },
     /** Update 1 or more global state contexts. The callback receives the global state and what contexts are updated are determined by what it returns */
@@ -226,7 +240,7 @@ export default function createStore<TStore>(initialState: TStore, useReduxDevToo
      * }
      * ```
      */
-    usePending<TContext extends StoreProps>(context: TContext) {
+    usePending<TContext extends StoreProp>(context: TContext) {
       const [pending, setPending] = useState(!!pendingState.get(context));
 
       if (!pendingSubscribers.has(context)) {
@@ -265,7 +279,7 @@ export default function createStore<TStore>(initialState: TStore, useReduxDevToo
      * }
      * ```
      */
-    useSquawk<TContext extends StoreProps>(...contexts: TContext[]): Pick<TStore, TContext> {
+    useSquawk<TContext extends StoreProp>(...contexts: TContext[]): Pick<TStore, TContext> {
       /** Initialize useState with the local state */
       const [localState, localDispatcher] = useState(globalState);
 
