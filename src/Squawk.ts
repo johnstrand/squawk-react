@@ -111,7 +111,7 @@ export default function createStore<TStore>(initialState: TStore, useReduxDevToo
     return () => contexts.forEach((context) => subscribers.get(context)!.delete(reducer));
   };
 
-  /** Update variants */
+  /** Update store with new values */
   function update<TContext extends StoreProp>(value: Pick<TStore, TContext>) {
     internalUpdate(value as Partial<TStore>);
   }
