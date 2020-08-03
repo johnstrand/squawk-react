@@ -6,9 +6,9 @@
 
 ![npm bundle size](https://img.shields.io/bundlephobia/minzip/squawk-react.svg)
 
-A simple support library for managing global state in React applications, with hooks! (insert pirate joke here). Squawk is also compatible with React Native, so long as the underlying React version is up-to-date enough to support hooks.
+Squawk is a simple, hooks-based, library for managing global state in React applications. Squawk is also compatible with React Native, so long as the underlying React version is up-to-date enough to support hooks.
 
-**New**: Squawk also features an integration with Redux Dev Tools, and supports time-travelling.
+Squawk also features an integration with Redux Dev Tools, and supports time-travelling.
 
 **Note**: Starting with 4.0, Squawk targets ES2017. If you have to support a browser that doesn't support ES2017, you'll have to use appropriate polyfills.
 
@@ -17,6 +17,11 @@ A simple support library for managing global state in React applications, with h
 Or just add it to your project with `npm i --save squawk-react`
 
 ## Check out a simple [tutorial](./tutorial.md).
+
+# Best practices
+
+- Avoid using too many nested objects. Squawk can only handle updates at the root level
+- If a parent and child requires the same data from the store, let the parent subscribe to changes and pass it down as a prop. Otherwise you will trigger unnecessary re-renders
 
 # API description
 
@@ -62,9 +67,9 @@ const updateProp = action((store, payload: string) => {
     return { prop: payload };
 });
 
-const updateTwoProps = action((store, payload1: number, payload2: string) => {
+const updateTwoProps = action((store, payload1: number, payload2: boolean) => {
   return { prop1: payload1, prop2: payload2 };
-})
+});
 
 const incrementProp = action(store => {
     return { someProp: store.someProp + 1 };
@@ -73,6 +78,7 @@ const incrementProp = action(store => {
 /* ... */
 
 updateProp("the new value");
+updateTwoProps("the first value", true)
 incrementProp();
 ```
 
@@ -247,9 +253,3 @@ This is used for global service classes, and for class-based components. (Always
 3.9 - Reworked action signature, as well as some performance improvements
 
 4.0 - Changed ES target to ES2017, to generate more clean code
-
-# Events (deprecated)
-
-**Events have been removed**
-
-**The main issue with events is that it encourages components to talk directly to each other, rather than channeling all communication through the store. This leads to a more complex and less transparent architecture**
