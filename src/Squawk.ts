@@ -17,15 +17,18 @@ interface WindowWithExtension<T> extends Window {
  *
  * @remarks
  *
- * **Note**: Ensure that the **ENTIRE** state is initialized on first call, or you will faces issues with crashes
+ * **Note**: Ensure that the **ENTIRE** state is fully initialized in the createStore call, or you will faces issues with crashes.
+ * If a prop must support undefined, define it as "foo: type | undefined" rather than "foo?: type".
  */
-export default function createStore<TStore>(initialState: TStore, useReduxDevTools = false) {
-  if (typeof initialState !== "object") {
-    throw Error(`Store must be an object, found ${typeof initialState}`);
+export default function createStore<T>(initialState: Required<T>, useReduxDevTools = false) {
+  if (initialState == null || typeof initialState !== "object" || Array.isArray(initialState)) {
+    throw Error(`Root store value must be an object`);
   }
 
   // eslint-disable-next-line immutable/no-let
   let globalState = { ...initialState };
+
+  type TStore = typeof initialState;
 
   type StoreProp = keyof TStore;
 
@@ -36,7 +39,7 @@ export default function createStore<TStore>(initialState: TStore, useReduxDevToo
   const subscribers = new Map<StoreProp, Set<Callback>>();
 
   /** Ensure that subscriber Map contains all contexts */
-  for (const context in Object.keys(initialState)) {
+  for (const context of Object.keys(initialState)) {
     subscribers.set(context as StoreProp, new Set());
   }
 
