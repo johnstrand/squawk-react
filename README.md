@@ -12,6 +12,8 @@ Squawk also features an integration with Redux Dev Tools, and supports time-trav
 
 **Note**: Starting with 4.0, Squawk targets ES2017. If you have to support a browser that doesn't support ES2017, you'll have to use appropriate polyfills.
 
+**Note**: Starting with 4.1, Squawk has a different system for handling tracking subscriptions, see the documentation below.
+
 ## [Find it on npm](https://www.npmjs.com/package/squawk-react)
 
 Or just add it to your project with `npm i --save squawk-react`
@@ -47,21 +49,23 @@ The function returns an object with the following methods:
 ## useSquawk
 
 ```typescript
-useSquawk(...props)
+useSquawk(...explicitProps)
 
-const { myProp, myOtherProp } = useSquawk("myProp", "myOtherProp");
+const { myProp, myOtherProp } = useSquawk();
 /*
 ..
 */
 </*...*/ someProp={myProp} />
 ```
 
-Sets up a hook for the specified properties, and returns an object with the current values. Also triggers an update whenever one or more properties are updated. This method is basically like a global useState, but there is no dispatch and the initializer accepts a list of properties to monitor.
+Sets up a hook for the accessed properties, and returns an object with the current values. Also triggers an update whenever one or more properties are updated. This method is basically like a global useState, but there is no dispatch and the initializer accepts an optional list of properties to monitor.
+
+For most cases, supplying explicitProps will not be necessary. But, if you conditionally access a property, and don't access it on the first render, you will find that no subscription was set up. In that case, you may solve it by adding it to the explicit props list.
 
 ## action
 
 ```typescript
-action(reducer: (store: T, ...payload: any[]) => Promise<Partial<TStore>> | Partial<TStore>)
+action(reducer: (store: T, ...payload: any[]) => Promise<Partial<TStore>> | Partial<TStore> | undefined)
 
 const updateProp = action((store, payload: string) => {
     return { prop: payload };
@@ -153,12 +157,12 @@ Updates the pending state of the specified state property or properties. Squawk 
 ## usePending
 
 ```typescript
-usePending(prop);
+usePending(...explicitProps);
 
-const myPropLoading = usePending("myProp");
+const { myProp: myPropLoading } = usePending();
 ```
 
-Sets up a hook for the pending state of the specified property, and returns true if the number of pending operations is greater than 0.
+Sets up a hook for the pending state for one or more properties, and returns and object with properties with the same names, but boolean values indicating whether or not there are pending operations. The logic around explicit properties is the same as for useSquawk
 
 # Legacy methods
 
@@ -167,14 +171,12 @@ These methods should generally not be used, they are a remnant from before actio
 ## get
 
 ```typescript
-get(prop);
 get();
 
-const value = get("myProp");
 const store = get();
 ```
 
-Fetches the current value of the specified state property, or the entire global state. Be careful with doing modifications, or risk the wrath of the ghost of references past.
+Fetches the current value of the global state. Be careful with doing modifications, or risk the wrath of the ghost of references past.
 
 ## subscribe
 
@@ -253,3 +255,5 @@ This is used for global service classes, and for class-based components. (Always
 3.9 - Reworked action signature, as well as some performance improvements
 
 4.0 - Changed ES target to ES2017, to generate more clean code
+
+4.1 - Reworked how subscription tracking works

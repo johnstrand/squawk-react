@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 interface ReduxDevTools<T> {
   subscribe(callback: (message: { type: string; state: string }) => void): void;
@@ -28,41 +28,63 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
   // eslint-disable-next-line immutable/no-let
   let globalState = { ...initialState };
 
+  // === Type definitions ===
   type TStore = typeof initialState;
 
   type StoreProp = keyof TStore;
 
-  /** Type alias for reducers: (value: T) => any */
+  type PendingCount = { [K in keyof T]: number };
+
+  type PendingState = { [K in keyof T]: boolean };
+
+  /** Type alias for subscribers: (value: T) => any */
   type Callback<T = TStore> = (value: T) => void;
 
-  /** Map that links individual keys in TStore to the reducer callbacks */
+  type StoreUpdate<T extends unknown[]> = (store: TStore, ...args: T) => Partial<TStore> | Promise<Partial<TStore>>;
+  // === End type definitions ===
+
+  /** Map that links individual keys in TStore to the subscriber callbacks */
   const subscribers = new Map<StoreProp, Set<Callback>>();
 
-  /** Ensure that subscriber Map contains all contexts */
-  for (const context of Object.keys(initialState)) {
-    subscribers.set(context as StoreProp, new Set());
-  }
+  /** Structures to track pending state for each store prop */
+  const pendingCount = {} as PendingCount;
+  // eslint-disable-next-line immutable/no-let
+  let pendingState = {} as PendingState;
 
   /** Map that links individual keys in TStore to the pending operation callbacks */
-  const pendingState = new Map<StoreProp, number>();
-  const pendingSubscribers = new Map<StoreProp, Set<Callback<boolean>>>();
+  const pendingSubscribers = new Map<StoreProp, Set<Callback<PendingState>>>();
 
+  /** Ensure that subscriber Map contains all contexts */
+  for (const context of Object.keys(initialState) as StoreProp[]) {
+    subscribers.set(context, new Set());
+    pendingSubscribers.set(context, new Set());
+    // eslint-disable-next-line immutable/no-mutation
+    pendingCount[context] = 0;
+    // eslint-disable-next-line immutable/no-mutation
+    pendingState[context] = false;
+  }
+
+  /** Function for notifying subscribers of a change */
   const internalDispatch = (contexts: StoreProp[]) => {
-    /** Get a (non-unique) list of affected reducers */
+    /** Get a (non-unique) list of affected subscribers */
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const reducers = contexts.map((context) => subscribers.get(context)!);
+    const contextSubscribers = contexts.map((context) => subscribers.get(context)!);
 
-    /** Ensure that reducers are invoked only once */
-    const invokedReducers = new Set<Callback>();
-    const reduceEach = (reducer: Callback) => {
-      if (invokedReducers.has(reducer)) {
+    /** Ensure that subscribers are invoked only once */
+    const invokedSubscribers = new Set<Callback>();
+    const reduceEach = (subscriber: Callback) => {
+      // Check if subscriber has been invoked
+      if (invokedSubscribers.has(subscriber)) {
+        // If so, skip it
         return;
       }
-      invokedReducers.add(reducer);
-      reducer(globalState);
+      // Add the subscriber to the list of invoked subscribers
+      invokedSubscribers.add(subscriber);
+      // and invoke it
+      subscriber(globalState);
     };
 
-    for (const list of reducers) {
+    for (const list of contextSubscribers) {
       list.forEach(reduceEach);
     }
   };
@@ -73,14 +95,16 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
 
   if (reduxDevTools) {
     reduxDevTools.subscribe((message) => {
+      // If Redux dev tools emitted a dispatch, and the state has a value
       if (message.type === "DISPATCH" && message.state) {
+        // Deserialize the value and dispatch updates to all subscribers
         globalState = JSON.parse(message.state);
         internalDispatch(Object.keys(globalState) as StoreProp[]);
       }
     });
   }
 
-  /** Actual update method, handles resolving subscribers and reducers */
+  /** Actual update method, handles resolving subscribers */
   const internalUpdate = (value: Partial<TStore> | (() => Partial<TStore>)) => {
     /** If we have received a function, evaluate it before proceeding */
     const updatedValues = typeof value === "function" ? value() : value;
@@ -94,6 +118,8 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
     globalState = { ...globalState, ...updatedValues };
 
     if (reduxDevTools) {
+      // Send a list of updates props, and the entire state, to Redux dev tools
+      // Passing the entire global state means that we can easily revert to a snapsho
       reduxDevTools.send(Object.keys(value).join(" | "), globalState);
     }
 
@@ -102,41 +128,27 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
   };
 
   /** Internal method for setting up and removing subscriptions */
-  const internalSubscribe = (contexts: StoreProp[], reducer: Callback) => {
+  const internalSubscribe = (contexts: StoreProp[], subscriber: Callback) => {
     /** For each supplied context, set up a context->[callback] mapping */
     contexts.forEach((context) => {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      subscribers.get(context)!.add(reducer);
+      subscribers.get(context)!.add(subscriber);
     });
 
     /** Return a function that can be used to remove subscriptions */
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    return () => contexts.forEach((context) => subscribers.get(context)!.delete(reducer));
+    return () => contexts.forEach((context) => subscribers.get(context)!.delete(subscriber));
   };
-
-  /** Update store with new values */
-  function update<TContext extends StoreProp>(value: Pick<TStore, TContext>) {
-    internalUpdate(value as Partial<TStore>);
-  }
-
-  function get<TContext extends StoreProp>(context: TContext): TStore[TContext];
-  function get(): Readonly<TStore>;
-  function get<TContext extends StoreProp>(context?: TContext) {
-    return context ? globalState[context] : globalState;
-  }
-
-  type StoreUpdate<T extends unknown[]> = (store: TStore, ...args: T) => Partial<TStore> | Promise<Partial<TStore>> | undefined;
 
   function action<T extends unknown[]>(resolver: StoreUpdate<T>) {
     return async (...args: T) => {
       const value = await Promise.resolve(resolver(globalState, ...args));
-      if (value) {
-        internalUpdate(value);
-      }
+      internalUpdate(value);
       return globalState;
     };
   }
 
+  /** Hook that ensures that a callback is only called if the component still is mounted */
   function useIfMounted<T extends unknown[]>(action: (...args: T) => void) {
     /** Keep track if the component is mounted */
     const isMounted = useRef(true);
@@ -160,8 +172,10 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
   return {
     /** Helper function to create "prebaked" update methods */
     action,
-    /** Returns a specific named value from the global state */
-    get,
+    /** Returns the entire global state */
+    get() {
+      return globalState as Readonly<TStore>;
+    },
     /** Updates the pending status of the specified context */
     /**
      * Updates boolean status for **pending operations** in parts of the global state
@@ -186,27 +200,30 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
      */
     pending<TContext extends StoreProp>(context: TContext | TContext[], state: boolean) {
       const contextList = Array.isArray(context) ? context : [context];
+      const pendingSubscribersInternal = new Set<Callback<PendingState>>();
+
+      pendingState = { ...pendingState };
+
       for (const ctx of contextList) {
-        const newValue = (pendingState.get(ctx) ?? 0) + (state ? 1 : -1);
+        const newValue = pendingCount[ctx] + (state ? 1 : -1);
         if (newValue < 0) {
           throw Error(`Too many calls to pending("${ctx}", false)`);
         }
-        pendingState.set(ctx, newValue);
+        // eslint-disable-next-line immutable/no-mutation
+        pendingCount[ctx] = newValue;
+        // eslint-disable-next-line immutable/no-mutation
+        pendingState[ctx] = !!newValue;
+
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        pendingSubscribers.get(ctx)!.forEach((callback) => pendingSubscribersInternal.add(callback));
       }
 
-      for (const ctx of contextList) {
-        if (!pendingSubscribers.has(ctx)) {
-          return;
-        }
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        pendingSubscribers.get(ctx)!.forEach((callback) => callback((pendingState.get(ctx) ?? 0) > 0));
-      }
+      pendingSubscribersInternal.forEach((subscriber) => subscriber(pendingState));
     },
     /** Sets up a subscription for a single global state context */
     subscribe<TContext extends StoreProp>(context: TContext, callback: Callback<TStore[TContext]>): () => void {
       return internalSubscribe([context], (state: TStore) => callback(state[context]));
     },
-    /** Update 1 or more global state contexts. The callback receives the global state and what contexts are updated are determined by what it returns */
     /**
      * Update one or more parts of the global state.
      *
@@ -225,8 +242,9 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
      * });
      * ```
      */
-    update,
-    /** Use the pending hook, the value will be true if the number of pending operations per context is greater than 0 */
+    update<TContext extends StoreProp>(value: Pick<TStore, TContext>) {
+      internalUpdate(value as Partial<TStore>);
+    },
     /**
      * Subscribe to boolean updates for **async operations** in parts of the global state
      *
@@ -236,39 +254,51 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
      *
      * ```tsx
      * export const Comp = () => {
-     *  const loading = usePending("storeVar1");
+     *  const loading = usePending();
      *  ...
-     *  if(loading)
+     *  if(loading.storeVar1)
      *      return "Loading..";
      *  else
      *      return <div>Content</div>
      * }
      * ```
+     * See documentation for `pending()` for more details
      */
-    usePending<TContext extends StoreProp>(context: TContext) {
-      const [pending, setPending] = useState(!!pendingState.get(context));
+    usePending<T extends StoreProp>(...explicitContexts: T[]) {
+      const [localPending, localDispatch] = useState(pendingState);
 
-      if (!pendingSubscribers.has(context)) {
-        pendingSubscribers.set(context, new Set());
-      }
-
-      const callback = useIfMounted((state: boolean) => {
-        setPending(state);
+      const subscriber = useIfMounted((value: PendingState) => {
+        localDispatch(value);
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      pendingSubscribers.get(context)!.add(callback);
+      const contexts = useRef(new Set<StoreProp>(explicitContexts));
+
+      const proxy = useMemo(
+        () =>
+          new Proxy(localPending, {
+            get(_, prop) {
+              contexts.current.add(prop as StoreProp);
+              return localPending[prop as StoreProp];
+            }
+          }),
+        [localPending]
+      );
 
       useEffect(() => {
+        const _contexts = Array<StoreProp>();
+        contexts.current.forEach((context) => {
+          _contexts.push(context);
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          pendingSubscribers.get(context)!.add(subscriber);
+        });
         return () => {
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          pendingSubscribers.get(context)!.delete(callback);
+          _contexts.forEach((context) => pendingSubscribers.get(context)!.delete(subscriber));
         };
-      }, [context, callback]);
+      }, [subscriber]);
 
-      return pending;
+      return proxy;
     },
-    /** Use the squawk hook. The local state will be whatever the reducer returns. The method returns the current local state, and a method to update the global state */
     /**
      * Subscribes to updates in the global state to re-render a component
      *
@@ -278,13 +308,13 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
      *
      * ```tsx
      * export const Comp = () => {
-     *  const { storeVar1, storeVar2 } = useSquawk("storeVar1", "storeVar2");
+     *  const { storeVar1, storeVar2 } = useSquawk();
      *  ...
      *  return <div>{storevar1} - {storeVar2}</div>
      * }
      * ```
      */
-    useSquawk<TContext extends StoreProp>(...contexts: TContext[]): Pick<TStore, TContext> {
+    useSquawk<T extends StoreProp>(...explicitContexts: T[]): TStore {
       /** Initialize useState with the local state */
       const [localState, localDispatcher] = useState(globalState);
 
@@ -293,17 +323,26 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
         localDispatcher(value);
       });
 
-      /** Set up subscriptions for the contexts in the local state */
-      const unsubscribe = useRef(internalSubscribe(contexts, subscriber));
+      const contexts = useRef(new Set<StoreProp>(explicitContexts));
+
+      const proxy = useMemo(
+        () =>
+          new Proxy(localState, {
+            get(_, prop) {
+              contexts.current.add(prop as StoreProp);
+              return localState[prop as StoreProp];
+            }
+          }),
+        [localState]
+      );
 
       useEffect(() => {
-        const unsubscribeRef = unsubscribe.current;
-        return () => {
-          unsubscribeRef();
-        };
-      }, [unsubscribe]);
+        const unsubscribe = internalSubscribe(Array.from(contexts.current), subscriber);
 
-      return localState;
+        return unsubscribe;
+      }, [contexts, subscriber]);
+
+      return proxy;
     }
   };
 }
