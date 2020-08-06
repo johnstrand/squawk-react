@@ -125,12 +125,14 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
     return context ? globalState[context] : globalState;
   }
 
-  type StoreUpdate<T extends unknown[]> = (store: TStore, ...args: T) => Partial<TStore> | Promise<Partial<TStore>>;
+  type StoreUpdate<T extends unknown[]> = (store: TStore, ...args: T) => Partial<TStore> | Promise<Partial<TStore>> | undefined;
 
   function action<T extends unknown[]>(resolver: StoreUpdate<T>) {
     return async (...args: T) => {
       const value = await Promise.resolve(resolver(globalState, ...args));
-      internalUpdate(value);
+      if (value) {
+        internalUpdate(value);
+      }
       return globalState;
     };
   }
