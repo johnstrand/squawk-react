@@ -542,3 +542,13 @@ function createStore<T extends {}>(initialState: Required<T>) {
   };
 }
 ```
+
+Having done this, the `Counter` component can now be changed to this:
+
+```tsx
+const Counter = () => {
+  const { count } = store.useState("count");
+
+  return <div>Count: {count}</div>;
+};
+```
