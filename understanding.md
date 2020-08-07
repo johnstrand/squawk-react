@@ -35,6 +35,7 @@ function createStore<TStore extends {}>(initialState: Required<TStore>) {
 
   return {
     update(values: Partial<TStore>) {
+      // Merge current global state with whatever values were supplied
       globalState = { ...globalState, ...values };
     },
     get() {
@@ -53,6 +54,12 @@ We also add a Map to track subscribers for each property:
 
 ```typescript
 const subscribers = new Map<StoreProp, Set<(state: TStore) => void>>();
+// Object.keys couldn't care less what the source type is, the return value will
+// always be typed as "string" | "number" | "Symbol" and then complain that that
+// type can't be converted to StoreProp, so just make an explicit type assertion
+// Note here that I don't say type conversion. Unlike other languages, TypeScript
+// CANNOT affect the underlying type; type assertions is basically just a promise
+// to the transpiler that "I pinky swear that this variable is of this type"
 for (const key of Object.keys(initialState) as StoreProp[]) {
   subscribers.set(key, new Set());
 }
@@ -432,6 +439,105 @@ function createStore<T extends {}>(initialState: Required<T>) {
       const _contexts = [...contexts];
       _contexts.forEach((context) => subscribers.get(context)!.add(callback));
       return () => _contexts.forEach((context) => subscribers.get(context)!.delete(callback));
+    }
+  };
+}
+```
+
+# React Bindings
+
+"This is all good and well", you say, "but I want React bindings. I don't want to keep mucking with local state like some sort of cave man, I want all of this to work through magic". So, let's sprinkle a bit React magic on top of it all.
+
+For the next step, I refer you to [this Sandbox](https://codesandbox.io/s/elegant-haze-01xo2), as I've changed a few things when adding the React hook.
+
+Here is our very own useState method (normally, I'd recommend naming it anything but something that could collide with built-in React names, but this is just a demo)
+
+```typescript
+useState<TContext extends StoreProp>(...contexts: TContext[]) {
+  // Initialize local state from global state
+  const [localState, setLocalState] = React.useState(globalState);
+  // Copy supplied contexts to a reference. Why? Because each time the component
+  // renders, the array inside contexts will be redefined, and if we then refer
+  // to it inside useEffect, we must add it to the dependency array, and useEffect
+  // will be called every time. Since we don't care if the content of the array
+  // changes (and it really shouldn't), we capture the first one we see and re-use it
+  const _contexts = React.useRef(contexts);
+
+  React.useEffect(() => {
+    // Create a subscription for each supplied context and then return the callback
+    // so that useEffect will clean things up for us
+    return this.subscribe(
+      (state) => setLocalState(state),
+      ..._contexts.current
+    );
+  }, []);
+
+  // Why cast the state as a Pick type, when it actually contains all props?
+  // Well, we don't care if the caller should happen to access any of the other
+  // props, but we want to make it clear that the component will NOT re-render
+  // if they change
+  return localState as Pick<TStore, TContext>;
+}
+```
+
+## Checkpoint 8
+
+```typescript
+function createStore<T extends {}>(initialState: Required<T>) {
+  type TStore = typeof initialState;
+  type StoreProp = keyof TStore;
+  type Callback = (state: TStore) => void;
+  type StoreAction<TArg extends unknown[]> = (store: TStore, ...args: TArg) => Partial<TStore> | Promise<Partial<TStore>> | undefined;
+
+  let globalState = { ...initialState };
+
+  const subscribers = new Map<StoreProp, Set<Callback>>();
+  for (const key of Object.keys(initialState) as StoreProp[]) {
+    subscribers.set(key, new Set());
+  }
+
+  return {
+    action<TArg extends unknown[]>(resolver: StoreAction<TArg>) {
+      return async (...args: TArg) => {
+        const value = await Promise.resolve(resolver(globalState, ...args));
+        if (value) {
+          this.update(value);
+        }
+        return globalState;
+      };
+    },
+    update(values: Partial<TStore>) {
+      globalState = { ...globalState, ...values };
+      const affectedContexts = Object.keys(values) as StoreProp[];
+      const invokedCallbacks = new Set<Callback>();
+      const invokeEach = (subscriber: Callback) => {
+        if (invokedCallbacks.has(subscriber)) {
+          return;
+        }
+        invokedCallbacks.add(subscriber);
+        subscriber(globalState);
+      };
+      for (const context of affectedContexts) {
+        subscribers.get(context)!.forEach(invokeEach);
+      }
+    },
+    get() {
+      return { ...globalState };
+    },
+    subscribe<TContext extends StoreProp>(callback: Callback, ...contexts: TContext[]) {
+      const _contexts = [...contexts];
+      _contexts.forEach((context) => subscribers.get(context)!.add(callback));
+      return () => _contexts.forEach((context) => subscribers.get(context)!.delete(callback));
+    },
+    useState<TContext extends StoreProp>(...contexts: TContext[]) {
+      const [localState, setLocalState] = React.useState(globalState);
+      const _contexts = React.useRef(contexts);
+
+      React.useEffect(() => {
+        return this.subscribe((state) => setLocalState(state), ..._contexts.current);
+      }, []);
+
+      return localState as Pick<TStore, TContext>;
     }
   };
 }
