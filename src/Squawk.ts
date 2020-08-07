@@ -40,7 +40,7 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
   /** Type alias for subscribers: (value: T) => any */
   type Callback<T = TStore> = (value: T) => void;
 
-  type StoreUpdate<T extends unknown[]> = (store: TStore, ...args: T) => Partial<TStore> | Promise<Partial<TStore>>;
+  type StoreUpdate<T extends unknown[]> = (store: TStore, ...args: T) => Partial<TStore> | Promise<Partial<TStore>> | undefined;
   // === End type definitions ===
 
   /** Map that links individual keys in TStore to the subscriber callbacks */
@@ -143,7 +143,9 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
   function action<T extends unknown[]>(resolver: StoreUpdate<T>) {
     return async (...args: T) => {
       const value = await Promise.resolve(resolver(globalState, ...args));
-      internalUpdate(value);
+      if (value) {
+        internalUpdate(value);
+      }
       return globalState;
     };
   }
