@@ -15,7 +15,7 @@ export default function createStore<TStore>(
     useReduxDevTools && devToolsExt ? devToolsExt.connect() : null;
 
   if (reduxDevTools) {
-    reduxDevTools.subscribe(message => {
+    reduxDevTools.subscribe((message) => {
       if (message.type === "DISPATCH" && message.state) {
         globalState = JSON.parse(message.state);
         internalDispatch(Object.keys(globalState));
@@ -63,8 +63,8 @@ export default function createStore<TStore>(
   const internalDispatch = (contexts: string[]) => {
     /** Get a (non-unique) list of affected reducers */
     const reducers = contexts
-      .filter(context => subscribers.has(context))
-      .map(context => subscribers.get(context)!);
+      .filter((context) => subscribers.has(context))
+      .map((context) => subscribers.get(context)!);
 
     /** Get unique reducers and invoke them */
     const invokedReducers = new Set<Reducer>();
@@ -83,7 +83,7 @@ export default function createStore<TStore>(
   /** Internal method for setting up and removing subscriptions */
   const internalSubscribe = (contexts: string[], reducer: Reducer) => {
     /** For each supplied context, set up a context->[callback] mapping */
-    contexts.forEach(context => {
+    contexts.forEach((context) => {
       if (!subscribers.has(context)) {
         subscribers.set(context, new Set());
       }
@@ -92,7 +92,7 @@ export default function createStore<TStore>(
 
     /** Return a function that can be used to remove subscriptions */
     return () =>
-      contexts.forEach(context => subscribers.get(context)!.delete(reducer));
+      contexts.forEach((context) => subscribers.get(context)!.delete(reducer));
   };
 
   /** Update variants */
@@ -118,7 +118,7 @@ export default function createStore<TStore>(
         [keyOrReducerOrValue]:
           typeof reducerOrValue === "function"
             ? reducerOrValue((globalState as any)[keyOrReducerOrValue])
-            : reducerOrValue
+            : reducerOrValue,
       });
     } else {
       internalUpdate(keyOrReducerOrValue);
@@ -179,11 +179,11 @@ export default function createStore<TStore>(
 
       for (const ctx of context) {
         if (!pendingSubscribers.has(ctx as string)) {
-          return;
+          continue;
         }
         pendingSubscribers
           .get(ctx as string)!
-          .forEach(callback => callback(pendingState[ctx] > 0));
+          .forEach((callback) => callback(pendingState[ctx] > 0));
       }
     },
     /** Sets up a subscription for a single global state context */
@@ -269,6 +269,6 @@ export default function createStore<TStore>(
       }, [unsubscribe]);
 
       return localState;
-    }
+    },
   };
 }
