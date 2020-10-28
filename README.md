@@ -18,7 +18,7 @@ Squawk also features an integration with Redux Dev Tools, and supports time-trav
 
 Or just add it to your project with `npm i --save squawk-react`
 
-## Check out a simple [tutorial](./tutorial.md).
+## Check out a simple [tutorial](./tutorial.md), or a [behind-the-scenes](./understanding.md) view of the principles behind Squawk.
 
 # Best practices
 
