@@ -20,6 +20,7 @@ interface WindowWithExtension<T> extends Window {
  * **Note**: Ensure that the **ENTIRE** state is fully initialized in the createStore call, or you will faces issues with crashes.
  * If a prop must support undefined, define it as "foo: type | undefined" rather than "foo?: type".
  */
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export default function createStore<T>(initialState: Required<T>, useReduxDevTools = false) {
   if (initialState == null || typeof initialState !== "object" || Array.isArray(initialState)) {
     throw Error(`Root store value must be an object`);
@@ -84,6 +85,9 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
       subscriber(globalState);
     };
 
+    // Call the reducer for each list in subscribers
+    // We avoid doing forEach(... => { }) because that would recreate the closure for
+    // each loop, and that causes unnecessary allocations
     for (const list of contextSubscribers) {
       list.forEach(reduceEach);
     }
@@ -140,40 +144,50 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
     return () => contexts.forEach((context) => subscribers.get(context)!.delete(subscriber));
   };
 
-  function action<T extends unknown[]>(resolver: StoreUpdate<T>) {
-    return async (...args: T) => {
-      const value = await Promise.resolve(resolver(globalState, ...args));
-      if (value) {
-        internalUpdate(value);
-      }
-      return globalState;
-    };
-  }
-
   /** Hook that ensures that a callback is only called if the component still is mounted */
   function useIfMounted<T extends unknown[]>(action: (...args: T) => void) {
     /** Keep track if the component is mounted */
     const isMounted = useRef(true);
 
     useEffect(() => {
+      // Set the value to true on mount
       // eslint-disable-next-line immutable/no-mutation
       isMounted.current = true;
       return () => {
+        // Set the value to false on unmount
         // eslint-disable-next-line immutable/no-mutation
         isMounted.current = false;
       };
     }, []);
 
     return useRef((...args: T) => {
+      // Only invoke action if the parent component is mounted
       if (isMounted.current) {
         action(...args);
       }
     }).current;
   }
 
-  return {
+  const createdState = {
     /** Helper function to create "prebaked" update methods */
-    action,
+    action<T extends unknown[]>(resolver: StoreUpdate<T>, affectedContexts: StoreProp[] = []) {
+      return async (...args: T) => {
+        // Mark the supplied contexts as pending
+        createdState.pending(affectedContexts, true);
+        try {
+          // Resolve the promise from the resolver
+          const value = await Promise.resolve(resolver(globalState, ...args));
+          // If the resolve returned an object, dispatch an update
+          if (value) {
+            internalUpdate(value);
+          }
+        } finally {
+          // Ensure that pending is reset regardless of outcome
+          createdState.pending(affectedContexts, false);
+        }
+        return globalState;
+      };
+    },
     /** Returns the entire global state */
     get() {
       return globalState as Readonly<TStore>;
@@ -200,26 +214,37 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
      * });
      * ```
      */
-    pending<TContext extends StoreProp>(context: TContext | TContext[], state: boolean) {
-      const contextList = Array.isArray(context) ? context : [context];
+    pending<TContext extends StoreProp>(contexts: TContext | TContext[], state: boolean) {
+      // Ensure that contextList is an array, no matter what
+      const contextList = Array.isArray(contexts) ? contexts : [contexts];
+      // Internal set to ensure that we only call each callback once
       const pendingSubscribersInternal = new Set<Callback<PendingState>>();
 
+      // TODO: Figure this out
       pendingState = { ...pendingState };
 
-      for (const ctx of contextList) {
-        const newValue = pendingCount[ctx] + (state ? 1 : -1);
+      // For each context in list
+      for (const context of contextList) {
+        // Increment or decrement as necessary
+        const newValue = pendingCount[context] + (state ? 1 : -1);
+        // Value should never drop below 0
         if (newValue < 0) {
-          throw Error(`Too many calls to pending("${ctx}", false)`);
+          throw Error(`Too many calls to pending("${context}", false)`);
         }
-        // eslint-disable-next-line immutable/no-mutation
-        pendingCount[ctx] = newValue;
-        // eslint-disable-next-line immutable/no-mutation
-        pendingState[ctx] = !!newValue;
 
+        // Set pending count of current context to the new value
+        // eslint-disable-next-line immutable/no-mutation
+        pendingCount[context] = newValue;
+        // Set pending state of the current context to true as long as the count is greater than 0
+        // eslint-disable-next-line immutable/no-mutation
+        pendingState[context] = newValue > 0;
+
+        // Find all subscribers to the context and add them to the internal set
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        pendingSubscribers.get(ctx)!.forEach((callback) => pendingSubscribersInternal.add(callback));
+        pendingSubscribers.get(context)!.forEach((callback) => pendingSubscribersInternal.add(callback));
       }
 
+      // Invoke all unique subscribers with the new pending states
       pendingSubscribersInternal.forEach((subscriber) => subscriber(pendingState));
     },
     /** Sets up a subscription for a single global state context */
@@ -347,4 +372,6 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
       return proxy;
     }
   };
+
+  return createdState;
 }

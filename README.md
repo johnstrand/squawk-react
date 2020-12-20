@@ -65,7 +65,7 @@ For most cases, supplying explicitProps will not be necessary. But, if you condi
 ## action
 
 ```typescript
-action(reducer: (store: T, ...payload: any[]) => Promise<Partial<TStore>> | Partial<TStore> | undefined)
+action(reducer: (store: T, ...payload: any[]) => Promise<Partial<TStore>> | Partial<TStore> | undefined, affectedContexts: StoreProp[] = [])
 
 const updateProp = action((store, payload: string) => {
     return { prop: payload };
@@ -82,11 +82,13 @@ const incrementProp = action(store => {
 /* ... */
 
 updateProp("the new value");
-updateTwoProps("the first value", true)
+updateTwoProps(101, true)
 incrementProp();
 ```
 
 Creates a reusable action to update parts or all of the global state. The first parameter passed in will always be the current state, followed by 0 to many optional parameters. The returned action will copy the parameters and their types from the reducer, and have an identical signature.
+
+The second, optional, parameter is a list of the context that may be changed by the action. If supplied, Squawk will automatically set and clear pending status for these contexts.
 
 _Note: Earlier version required the user to create an object to pass more than one parameter, this new version allows for an arbitrary number of parameters_
 
