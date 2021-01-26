@@ -94,7 +94,7 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
   };
 
   /** Set up Redux Dev tools (if enabled) */
-  const devToolsExt = (window as WindowWithExtension<TStore>).__REDUX_DEVTOOLS_EXTENSION__;
+  const devToolsExt = typeof window !== "undefined" ? (window as WindowWithExtension<TStore>).__REDUX_DEVTOOLS_EXTENSION__ : null;
   const reduxDevTools = useReduxDevTools && devToolsExt ? devToolsExt.connect() : null;
 
   if (reduxDevTools) {

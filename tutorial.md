@@ -121,7 +121,7 @@ import { useSquawk } from "./Store";
 import { increment, reset, decrement } from "./Actions";
 
 const Counter = () => {
-  const { count } = useSquawk("count");
+  const { count } = useSquawk();
 
   return (
     <div>
@@ -141,7 +141,7 @@ export default Counter;
 Here, we've imported the `useSquawk` hook, and 3 of the actions we defined earlier. The subscription from the component to squawks store is created through the following line in `Counter.tsx`:
 
 ```tsx
-const { count } = useSquawk("count");
+const { count } = useSquawk();
 ```
 
 With TypeScript, you'll find that the arguments passed to `useSquawk` is limited to the names of the properties defined in the interface `AppState`, and the properties in the derived state match the passed in arguments.
@@ -213,7 +213,7 @@ import React from "react";
 import { useSquawk } from "./Store";
 
 const ItemList = () => {
-  const { items } = useSquawk("items");
+  const { items } = useSquawk();
   if (items.length === 0) {
     return <div>Empty list</div>;
   }
