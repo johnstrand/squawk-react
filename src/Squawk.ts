@@ -12,6 +12,32 @@ interface WindowWithExtension<T> extends Window {
   };
 }
 
+const createStoreWrapper = <T>(initialState: T) => {
+  // eslint-disable-next-line immutable/no-let
+  let globalState = { ...initialState };
+  return {
+    update(updatedValues: Partial<T>) {
+      globalState = { ...globalState, ...updatedValues };
+    },
+    get() {
+      return { ...globalState } as Readonly<T>;
+    },
+    getValue(prop: keyof T) {
+      return globalState[prop];
+    },
+    setValue<K extends keyof T>(prop: K, value: T[K]) {
+      // eslint-disable-next-line immutable/no-mutation
+      globalState[prop] = value;
+    },
+    set(state: Required<T>) {
+      globalState = { ...state };
+    },
+    keys() {
+      return Object.keys(globalState) as (keyof T)[];
+    }
+  };
+};
+
 /**
  * Initializes the store
  *
@@ -26,8 +52,8 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
     throw Error(`Root store value must be an object`);
   }
 
-  // eslint-disable-next-line immutable/no-let
-  let globalState = { ...initialState };
+  /** Wrapper for the global state, ensures consistency across async calls */
+  const globalState = createStoreWrapper(initialState);
 
   // === Type definitions ===
   type TStore = typeof initialState;
@@ -48,25 +74,22 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
   const subscribers = new Map<StoreProp, Set<Callback>>();
 
   /** Structures to track pending state for each store prop */
-  const pendingCount = {} as PendingCount;
-  // eslint-disable-next-line immutable/no-let
-  let pendingState = {} as PendingState;
+  const pendingCount = createStoreWrapper({} as PendingCount);
+  const pendingState = createStoreWrapper({} as PendingState);
 
   /** Map that links individual keys in TStore to the pending operation callbacks */
   const pendingSubscribers = new Map<StoreProp, Set<Callback<PendingState>>>();
 
   /** Ensure that subscriber Map contains all contexts */
-  for (const context of Object.keys(initialState) as StoreProp[]) {
+  for (const context of globalState.keys()) {
     subscribers.set(context, new Set());
     pendingSubscribers.set(context, new Set());
-    // eslint-disable-next-line immutable/no-mutation
-    pendingCount[context] = 0;
-    // eslint-disable-next-line immutable/no-mutation
-    pendingState[context] = false;
+    pendingCount.setValue(context, 0);
+    pendingState.setValue(context, false);
   }
 
   /** Function for notifying subscribers of a change */
-  const internalDispatch = (contexts: StoreProp[]) => {
+  const notifySubscribers = (contexts: StoreProp[]) => {
     /** Get a (non-unique) list of affected subscribers */
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const contextSubscribers = contexts.map((context) => subscribers.get(context)!);
@@ -82,7 +105,7 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
       // Add the subscriber to the list of invoked subscribers
       invokedSubscribers.add(subscriber);
       // and invoke it
-      subscriber(globalState);
+      subscriber(globalState.get());
     };
 
     // Call the reducer for each list in subscribers
@@ -102,33 +125,34 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
       // If Redux dev tools emitted a dispatch, and the state has a value
       if (message.type === "DISPATCH" && message.state) {
         // Deserialize the value and dispatch updates to all subscribers
-        globalState = JSON.parse(message.state);
-        internalDispatch(Object.keys(globalState) as StoreProp[]);
+        globalState.set(JSON.parse(message.state));
+        notifySubscribers(globalState.keys());
       }
     });
   }
 
   /** Actual update method, handles resolving subscribers */
-  const internalUpdate = (value: Partial<TStore> | (() => Partial<TStore>)) => {
-    /** If we have received a function, evaluate it before proceeding */
+  const dispatchUpdate = (value: Partial<TStore> | (() => Partial<TStore>)) => {
+    // If we have received a function, evaluate it before proceeding
+    /** The values to update */
     const updatedValues = typeof value === "function" ? value() : value;
 
-    /** Make sure that value is not null, and that it is an object */
+    // Make sure that value is not null, and that it is an object
     if (!updatedValues || typeof updatedValues !== "object") {
       return;
     }
 
-    /** Merge updated values with global state */
-    globalState = { ...globalState, ...updatedValues };
+    // Merge updated values with global state
+    globalState.update(updatedValues);
 
     if (reduxDevTools) {
       // Send a list of updates props, and the entire state, to Redux dev tools
       // Passing the entire global state means that we can easily revert to a snapsho
-      reduxDevTools.send(Object.keys(value).join(" | "), globalState);
+      reduxDevTools.send(Object.keys(value).join(" | "), globalState.get());
     }
 
     /** Get a list of affected contexts from value object */
-    internalDispatch(Object.keys(updatedValues) as StoreProp[]);
+    notifySubscribers(Object.keys(updatedValues) as StoreProp[]);
   };
 
   /** Internal method for setting up and removing subscriptions */
@@ -168,29 +192,30 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
     }).current;
   }
 
-  const createdState = {
+  const createdStore = {
     /** Helper function to create "prebaked" update methods */
     action<T extends unknown[]>(resolver: StoreUpdate<T>, affectedContexts: StoreProp[] = []) {
       return async (...args: T) => {
         // Mark the supplied contexts as pending
-        createdState.pending(affectedContexts, true);
+        createdStore.pending(affectedContexts, true);
         try {
           // Resolve the promise from the resolver
-          const value = await Promise.resolve(resolver(globalState, ...args));
-          // If the resolve returned an object, dispatch an update
+          const value = await Promise.resolve(resolver(globalState.get(), ...args));
+
+          // If the resolve returned something that wasn't undefined
           if (value) {
-            internalUpdate(value);
+            dispatchUpdate(value);
           }
         } finally {
           // Ensure that pending is reset regardless of outcome
-          createdState.pending(affectedContexts, false);
+          createdStore.pending(affectedContexts, false);
         }
         return globalState;
       };
     },
     /** Returns the entire global state */
     get() {
-      return globalState as Readonly<TStore>;
+      return globalState.get();
     },
     /** Updates the pending status of the specified context */
     /**
@@ -220,24 +245,19 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
       // Internal set to ensure that we only call each callback once
       const pendingSubscribersInternal = new Set<Callback<PendingState>>();
 
-      // TODO: Figure this out
-      pendingState = { ...pendingState };
-
       // For each context in list
       for (const context of contextList) {
         // Increment or decrement as necessary
-        const newValue = pendingCount[context] + (state ? 1 : -1);
+        const newValue = pendingCount.getValue(context) + (state ? 1 : -1);
         // Value should never drop below 0
         if (newValue < 0) {
           throw Error(`Too many calls to pending("${context}", false)`);
         }
 
         // Set pending count of current context to the new value
-        // eslint-disable-next-line immutable/no-mutation
-        pendingCount[context] = newValue;
+        pendingCount.setValue(context, newValue);
         // Set pending state of the current context to true as long as the count is greater than 0
-        // eslint-disable-next-line immutable/no-mutation
-        pendingState[context] = newValue > 0;
+        pendingState.setValue(context, newValue > 0);
 
         // Find all subscribers to the context and add them to the internal set
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -245,7 +265,7 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
       }
 
       // Invoke all unique subscribers with the new pending states
-      pendingSubscribersInternal.forEach((subscriber) => subscriber(pendingState));
+      pendingSubscribersInternal.forEach((subscriber) => subscriber(pendingState.get()));
     },
     /** Sets up a subscription for a single global state context */
     subscribe<TContext extends StoreProp>(context: TContext, callback: Callback<TStore[TContext]>): () => void {
@@ -270,7 +290,7 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
      * ```
      */
     update<TContext extends StoreProp>(value: Pick<TStore, TContext>) {
-      internalUpdate(value as Partial<TStore>);
+      dispatchUpdate(value as Partial<TStore>);
     },
     /**
      * Subscribe to boolean updates for **async operations** in parts of the global state
@@ -292,7 +312,7 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
      * See documentation for `pending()` for more details
      */
     usePending<T extends StoreProp>(...explicitContexts: T[]) {
-      const [localPending, localDispatch] = useState(pendingState);
+      const [localPending, localDispatch] = useState(pendingState.get());
 
       const subscriber = useIfMounted((value: PendingState) => {
         localDispatch(value);
@@ -342,8 +362,8 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
      * ```
      */
     useSquawk<T extends StoreProp>(...explicitContexts: T[]): TStore {
-      /** Initialize useState with the local state */
-      const [localState, localDispatcher] = useState(globalState);
+      /** Initialize useState with the global state */
+      const [localState, localDispatcher] = useState(globalState.get());
 
       /** Define subscribe via callback to guarantee stable identity */
       const subscriber = useIfMounted((value: TStore) => {
@@ -364,14 +384,12 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
       );
 
       useEffect(() => {
-        const unsubscribe = internalSubscribe(Array.from(contexts.current), subscriber);
-
-        return unsubscribe;
+        return internalSubscribe(Array.from(contexts.current), subscriber);
       }, [contexts, subscriber]);
 
       return proxy;
     }
   };
 
-  return createdState;
+  return createdStore;
 }
