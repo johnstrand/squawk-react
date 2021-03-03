@@ -67,7 +67,9 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
   /** Type alias for subscribers: (value: T) => any */
   type Callback<T = TStore> = (value: T) => void;
 
-  type StoreUpdate<T extends unknown[]> = (store: TStore, ...args: T) => Partial<TStore> | Promise<Partial<TStore>> | undefined;
+  type ActionResult = Partial<TStore> | undefined | void;
+
+  type StoreUpdate<T extends unknown[]> = (store: TStore, ...args: T) => ActionResult | Promise<ActionResult>;
   // === End type definitions ===
 
   /** Map that links individual keys in TStore to the subscriber callbacks */
