@@ -259,3 +259,9 @@ This is used for global service classes, and for class-based components. (Always
 4.0 - Changed ES target to ES2017, to generate more clean code
 
 4.1 - Reworked how subscription tracking works
+
+4.2 - Added argument to automatically flag pending on and off in an action
+
+4.3 - Changed "module" target to "CommonJS" from "es6", in order to support SSR
+
+4.4 - Improved internal shared state handling
