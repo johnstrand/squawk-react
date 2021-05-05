@@ -200,6 +200,7 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
       return async (...args: T) => {
         // Mark the supplied contexts as pending
         createdStore.pending(affectedContexts, true);
+        // The purpose of this try-block is to ensure that all pending loaders are cleared up regardless of success or failure
         try {
           // Resolve the promise from the resolver
           const value = await Promise.resolve(resolver(globalState.get(), ...args));
@@ -208,6 +209,9 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
           if (value) {
             dispatchUpdate(value);
           }
+        } catch (err) {
+          // Rethrow the error
+          throw err;
         } finally {
           // Ensure that pending is reset regardless of outcome
           createdStore.pending(affectedContexts, false);
