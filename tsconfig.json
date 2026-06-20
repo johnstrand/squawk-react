@@ -11,7 +11,8 @@
     "diagnostics": true,
     "listEmittedFiles": true,
     "lib": ["es5", "es6", "dom"],
-    "strict": true
+    "strict": true,
+    "skipLibCheck": true
   },
   "exclude": ["node_modules", "build", "scripts", "acceptance-tests", "webpack", "jest", "src/setupTests.ts", "example", "lib", "dist", "src/__tests__"]
 }
