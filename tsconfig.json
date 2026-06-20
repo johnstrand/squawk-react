@@ -13,5 +13,5 @@
     "lib": ["es5", "es6", "dom"],
     "strict": true
   },
-  "exclude": ["node_modules", "build", "scripts", "acceptance-tests", "webpack", "jest", "src/setupTests.ts", "example", "lib", "dist"]
+  "exclude": ["node_modules", "build", "scripts", "acceptance-tests", "webpack", "jest", "src/setupTests.ts", "example", "lib", "dist", "src/__tests__"]
 }
