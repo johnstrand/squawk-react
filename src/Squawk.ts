@@ -271,7 +271,10 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
       }
 
       // Invoke all unique subscribers with the new pending states
-      pendingSubscribersInternal.forEach((subscriber) => subscriber(pendingState.get()));
+      if (pendingSubscribersInternal.size > 0) {
+        const currentPendingState = pendingState.get();
+        pendingSubscribersInternal.forEach((subscriber) => subscriber(currentPendingState));
+      }
     },
     /** Sets up a subscription for a single global state context */
     subscribe<TContext extends StoreProp>(context: TContext, callback: Callback<TStore[TContext]>): () => void {
