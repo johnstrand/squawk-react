@@ -28,7 +28,6 @@
     "typescript": ">=3.9.2"
   },
   "devDependencies": {
-    "@types/babel__traverse": "^7.11.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^11.2.7",
     "@types/jest": "^26.0.24",
