@@ -330,7 +330,9 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
         () =>
           new Proxy(localPending, {
             get(_, prop) {
-              contexts.current.add(prop as StoreProp);
+              if (typeof prop === "string") {
+                contexts.current.add(prop as StoreProp);
+              }
               return localPending[prop as StoreProp];
             }
           }),
@@ -382,7 +384,9 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
         () =>
           new Proxy(localState, {
             get(_, prop) {
-              contexts.current.add(prop as StoreProp);
+              if (typeof prop === "string") {
+                contexts.current.add(prop as StoreProp);
+              }
               return localState[prop as StoreProp];
             }
           }),
