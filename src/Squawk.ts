@@ -98,6 +98,10 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
 
     /** Ensure that subscribers are invoked only once */
     const invokedSubscribers = new Set<Callback>();
+
+    // Cache the state locally so we don't recreate a copy of it for every subscriber
+    const currentState = globalState.get();
+
     const reduceEach = (subscriber: Callback) => {
       // Check if subscriber has been invoked
       if (invokedSubscribers.has(subscriber)) {
@@ -107,7 +111,7 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
       // Add the subscriber to the list of invoked subscribers
       invokedSubscribers.add(subscriber);
       // and invoke it
-      subscriber(globalState.get());
+      subscriber(currentState);
     };
 
     // Call the reducer for each list in subscribers
