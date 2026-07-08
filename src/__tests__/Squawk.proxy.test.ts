@@ -1,15 +1,16 @@
-import createStore from "../Squawk";
 import * as React from "react";
+
+import createStore from "../Squawk";
 
 // Mock React hooks to simulate hook environment
 jest.mock("react", () => {
   const actualReact = jest.requireActual("react");
   return {
     ...actualReact,
-    useState: jest.fn((init) => [typeof init === 'function' ? init() : init, jest.fn()]),
+    useState: jest.fn((init) => [typeof init === "function" ? init() : init, jest.fn()]),
     useRef: jest.fn((init) => ({ current: init })),
     useMemo: jest.fn((factory) => factory()),
-    useEffect: jest.fn(),
+    useEffect: jest.fn()
   };
 });
 
