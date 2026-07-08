@@ -127,8 +127,13 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
       // If Redux dev tools emitted a dispatch, and the state has a value
       if (message.type === "DISPATCH" && message.state) {
         // Deserialize the value and dispatch updates to all subscribers
-        globalState.set(JSON.parse(message.state));
-        notifySubscribers(globalState.keys());
+        try {
+          const parsedState = JSON.parse(message.state);
+          globalState.set(parsedState);
+          notifySubscribers(globalState.keys());
+        } catch (e) {
+          // Ignore invalid JSON to prevent unhandled exceptions crashing the application
+        }
       }
     });
   }
