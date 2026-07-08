@@ -127,13 +127,8 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
       // If Redux dev tools emitted a dispatch, and the state has a value
       if (message.type === "DISPATCH" && message.state) {
         // Deserialize the value and dispatch updates to all subscribers
-        try {
-          const parsedState = JSON.parse(message.state);
-          globalState.set(parsedState);
-          notifySubscribers(globalState.keys());
-        } catch (e) {
-          // Ignore invalid JSON to prevent unhandled exceptions crashing the application
-        }
+        globalState.set(JSON.parse(message.state));
+        notifySubscribers(globalState.keys());
       }
     });
   }
@@ -335,9 +330,7 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
         () =>
           new Proxy(localPending, {
             get(_, prop) {
-              if (typeof prop === "string") {
-                contexts.current.add(prop as StoreProp);
-              }
+              contexts.current.add(prop as StoreProp);
               return localPending[prop as StoreProp];
             }
           }),
@@ -389,9 +382,7 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
         () =>
           new Proxy(localState, {
             get(_, prop) {
-              if (typeof prop === "string") {
-                contexts.current.add(prop as StoreProp);
-              }
+              contexts.current.add(prop as StoreProp);
               return localState[prop as StoreProp];
             }
           }),
