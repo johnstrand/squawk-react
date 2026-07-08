@@ -275,7 +275,10 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
       }
 
       // Invoke all unique subscribers with the new pending states
-      pendingSubscribersInternal.forEach((subscriber) => subscriber(pendingState.get()));
+      if (pendingSubscribersInternal.size > 0) {
+        const currentPendingState = pendingState.get();
+        pendingSubscribersInternal.forEach((subscriber) => subscriber(currentPendingState));
+      }
     },
     /** Sets up a subscription for a single global state context */
     subscribe<TContext extends StoreProp>(context: TContext, callback: Callback<TStore[TContext]>): () => void {
@@ -322,7 +325,7 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
      * See documentation for `pending()` for more details
      */
     usePending<T extends StoreProp>(...explicitContexts: T[]) {
-      const [localPending, localDispatch] = useState(pendingState.get());
+      const [localPending, localDispatch] = useState(() => pendingState.get());
 
       const subscriber = useIfMounted((value: PendingState) => {
         localDispatch(value);
@@ -375,7 +378,7 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
      */
     useSquawk<T extends StoreProp>(...explicitContexts: T[]): TStore {
       /** Initialize useState with the global state */
-      const [localState, localDispatcher] = useState(globalState.get());
+      const [localState, localDispatcher] = useState(() => globalState.get());
 
       /** Define subscribe via callback to guarantee stable identity */
       const subscriber = useIfMounted((value: TStore) => {
