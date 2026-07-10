@@ -28,4 +28,19 @@ describe("Squawk action", () => {
 
     pendingSpy.mockRestore();
   });
+
+  it("resolves functional updates correctly", async () => {
+    const store = createStore({
+      testProp: "initial"
+    });
+
+    const updateAction = store.action(() => {
+      // Returning a function that returns the updated state
+      return (() => ({ testProp: "updated" })) as any;
+    });
+
+    await updateAction();
+
+    expect(store.get().testProp).toBe("updated");
+  });
 });
