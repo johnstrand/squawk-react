@@ -118,7 +118,9 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
     // We avoid doing forEach(... => { }) because that would recreate the closure for
     // each loop, and that causes unnecessary allocations
     for (const list of contextSubscribers) {
-      list.forEach(reduceEach);
+      for (const subscriber of list) {
+        reduceEach(subscriber);
+      }
     }
   };
 
