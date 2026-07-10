@@ -170,14 +170,18 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
   /** Internal method for setting up and removing subscriptions */
   const internalSubscribe = (contexts: StoreProp[], subscriber: Callback) => {
     /** For each supplied context, set up a context->[callback] mapping */
-    contexts.forEach((context) => {
+    for (const context of contexts) {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       subscribers.get(context)!.add(subscriber);
-    });
+    }
 
     /** Return a function that can be used to remove subscriptions */
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    return () => contexts.forEach((context) => subscribers.get(context)!.delete(subscriber));
+    return () => {
+      for (const context of contexts) {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        subscribers.get(context)!.delete(subscriber);
+      }
+    };
   };
 
   /** Hook that ensures that a callback is only called if the component still is mounted */
