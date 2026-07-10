@@ -28,4 +28,23 @@ describe("Squawk update", () => {
       prop2: "updated2"
     });
   });
+
+  it("ignores invalid update values", () => {
+    const store = createStore({
+      prop1: "initial1",
+      prop2: "initial2"
+    });
+
+    store.update(null as any);
+    expect(store.get()).toEqual({
+      prop1: "initial1",
+      prop2: "initial2"
+    });
+
+    store.update("string" as any);
+    expect(store.get()).toEqual({
+      prop1: "initial1",
+      prop2: "initial2"
+    });
+  });
 });
