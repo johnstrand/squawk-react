@@ -118,7 +118,9 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
     // We avoid doing forEach(... => { }) because that would recreate the closure for
     // each loop, and that causes unnecessary allocations
     for (const list of contextSubscribers) {
-      list.forEach(reduceEach);
+      for (const subscriber of list) {
+        reduceEach(subscriber);
+      }
     }
   };
 
@@ -131,8 +133,12 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
       // If Redux dev tools emitted a dispatch, and the state has a value
       if (message.type === "DISPATCH" && message.state) {
         // Deserialize the value and dispatch updates to all subscribers
-        globalState.set(JSON.parse(message.state));
-        notifySubscribers(globalState.keys());
+        try {
+          globalState.set(JSON.parse(message.state));
+          notifySubscribers(globalState.keys());
+        } catch {
+          // Ignore malformed JSON
+        }
       }
     });
   }
