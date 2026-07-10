@@ -223,9 +223,6 @@ export default function createStore<T>(initialState: Required<T>, useReduxDevToo
           if (value) {
             dispatchUpdate(value);
           }
-        } catch (err) {
-          // Rethrow the error
-          throw err;
         } finally {
           // Ensure that pending is reset regardless of outcome
           createdStore.pending(affectedContexts, false);
